@@ -36,7 +36,7 @@ const 禁内容 = [
   [/C:\\Users\\/i, '本机用户目录绝对路径'],
   [/D:\\ai /i, '本机工程绝对路径'],
   [/D:\\qder/i, '本机备份位置'],
-  [/Administrator/i, '本机账户名'],
+  [/Admini[s]trator/i, '本机账户名'],        // 那个字符类不是笔误：写成字面量这条闸会抓到它自己
   [/(api[_-]?key|token|secret|password|appid)["']?\s*[:=]\s*["'][A-Za-z0-9_+\-]{12,}/i, '疑似写死的密钥'],
 ];
 
