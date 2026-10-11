@@ -36,11 +36,16 @@ npm run checks           # 需要本机有 Edge 或 Chrome，约 58 秒；退出
 
 | 命令 | 查什么 |
 |---|---|
+| `node tools/oss-guard.mjs` | 开源分区闸：个人版素材、本机绝对路径、写死的密钥不许进仓库（CI 每次 push 都跑） |
 | `npm run shell:check` | `sw.js` 的预缓存清单与磁盘是否一致、样式产物漂没漂 |
 | `node tools/gen-styles.mjs` | 按 `src/styles/NN-*.css` 重拼 `weather-app/styles.css`（改样式后必跑，产物别手改） |
 | `node tools/anchor-audit.mjs` | 变异表里每一处锚点还锚不锚得住 |
 | `node tools/falsify.mjs` | 逐条把实现改坏，确认对应断言真的会红（**很慢**，一整趟约两小时，见账本） |
 | `node tools/theme-pkg-check.mjs 你的.themepkg.json` | 主题插件包能不能导入、最差那格配色过不过 AA |
+
+这些闸门里只有纯 Node 的那几条进了 CI（`.github/workflows/ci.yml`，每次 push 与 PR 都跑，
+且不装依赖 —— 它们不读 `node_modules`）；浏览器回归要本机 Edge、真机脚本要 adb、
+`falsify` 一整趟约两小时，都不适合挂在 CI 上，缘由写在那个文件头。
 
 ## 打包成 Android 应用
 
