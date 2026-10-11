@@ -14,7 +14,7 @@
  * 没有可用设备就 exit 3（别把「量不到」当成「通过」）。 */
 import { execFileSync } from 'node:child_process';
 
-const A = 'D:/qder/Tools/android/Sdk/platform-tools/adb.exe';
+const A = (await import('./adb-path.mjs')).ADB;   // 别再写死绝对路径，见 tests/adb-path.mjs
 const PKG = 'com.weatherstudio.app';
 const ALIAS = { default: 'IconDefault', sun: 'IconSun', night: 'IconNight', bloom: 'IconBloom' };
 const IDS = Object.keys(ALIAS);

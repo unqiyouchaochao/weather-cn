@@ -17,7 +17,7 @@
  *
  * 前置条件按踩过的方式写死：屏幕必须已解锁、应用必须真在前台 —— 锁屏时 JS 照跑、
  * computed style 半新半旧、rAF 那一帧可能根本不落，量到的每一份数都不可信（脚本会自己查并拒绝）。 */
-const A = 'D:/qder/Tools/android/Sdk/platform-tools/adb.exe';
+const A = (await import('./adb-path.mjs')).ADB;   // 别再写死绝对路径，见 tests/adb-path.mjs
 const PKG = 'com.weatherstudio.app';
 const { execFileSync } = await import('node:child_process');
 let SER = process.argv[2];
