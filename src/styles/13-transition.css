@@ -1,0 +1,31 @@
+/* ---------- 板块切换特效 ----------
+ * 首选原生 View Transitions：old/new 两张快照同时动，才是真正的「推入」。
+ * 方向靠 --vt-in/--vt-out 两个自定义属性传进来（自定义属性会继承进伪元素树），
+ * 由 js/tabs.js 的 swapView() 在 startViewTransition 之前写。
+ * 顶栏与菜单栏单独命名，切换时它们原地不动 —— 底部导航跟着一起滑是廉价感的最大来源。 */
+@keyframes vt-out-fwd { to { opacity: 0; transform: translateX(-22px); } }
+@keyframes vt-in-fwd { from { opacity: 0; transform: translateX(22px); } }
+@keyframes vt-out-back { to { opacity: 0; transform: translateX(22px); } }
+@keyframes vt-in-back { from { opacity: 0; transform: translateX(-22px); } }
+
+.topbar { view-transition-name: topBar; }
+.tabbar { view-transition-name: tabBar; }
+::view-transition-old(root) { animation: var(--vt-out, fade-out .2s ease both); }
+::view-transition-new(root) { animation: var(--vt-in, fade-in .2s ease both); }
+/* 原地不动的两个命名块：连淡入淡出也关掉，否则菜单栏会在切换瞬间「重绘」一下 */
+::view-transition-old(topBar), ::view-transition-new(topBar),
+::view-transition-old(tabBar), ::view-transition-new(tabBar) { animation: none; }
+@keyframes fade-out { to { opacity: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
+
+/* 老 WebView 没有 startViewTransition：只给新内容做单侧滑入，观感接近、绝不白屏 */
+body.sw-fwd .app { animation: vt-in-fwd .3s cubic-bezier(.32, .72, .24, 1) both; }
+body.sw-back .app { animation: vt-in-back .3s cubic-bezier(.32, .72, .24, 1) both; }
+.tab:active { transform: scale(.985); }
+
+@media (prefers-reduced-motion: reduce) {
+  body.sw-fwd .app, body.sw-back .app { animation: none; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  .tab, .tab:active { transition: none; transform: none; }
+}
+

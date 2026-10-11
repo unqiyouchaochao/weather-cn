@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>天气助手 · 技术栈说明</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #fff; --ink: #1f2a37; --muted: #5b6673;
+    --line: #e2e8f0; --brand: #2563eb; --tag: #eef3fb; --code: #f1f5f9;
+  }
+  /* 这份文档自己也要经得起打印：纸上没有滚动条，也不该有半透底 */
+  @media print {
+    :root { --bg: #fff; }
+    body { background: #fff; }
+    section, .hero, table { break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px 20px 64px; background: var(--bg); color: var(--ink);
+    font: 15px/1.75 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  }
+  main { max-width: 900px; margin: 0 auto; }
+  .hero {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 26px 28px; margin-bottom: 22px;
+  }
+  h1 { margin: 0 0 6px; font-size: 26px; letter-spacing: .3px; }
+  .sub { margin: 0 0 16px; color: var(--muted); font-size: 14px; }
+  .lead { margin: 0; font-size: 16px; }
+  .lead b { color: var(--brand); }
+  .stats { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+  .stat { background: var(--tag); border-radius: 10px; padding: 8px 14px; font-size: 13px; color: #26405f; }
+  .stat b { font-size: 17px; display: block; line-height: 1.3; }
+  section {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 22px 28px; margin-bottom: 18px;
+  }
+  h2 { margin: 0 0 4px; font-size: 19px; }
+  h2 .n { color: var(--muted); font-weight: 400; margin-right: 8px; }
+  .note { margin: 0 0 16px; color: var(--muted); font-size: 13.5px; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 4px; font-size: 14px; }
+  th, td { text-align: left; padding: 9px 11px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 12.5px; color: var(--muted); font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
+  td:first-child { font-weight: 600; white-space: nowrap; }
+  td:nth-child(2) { white-space: nowrap; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; color: #35507a; }
+  tr:last-child td { border-bottom: none; }
+  code { background: var(--code); border-radius: 5px; padding: 1px 5px; font-family: ui-monospace, Consolas, monospace; font-size: 12.5px; }
+  ul { margin: 8px 0 0; padding-left: 20px; }
+  li { margin-bottom: 9px; }
+  .pill { display: inline-block; background: var(--tag); color: #26405f; border-radius: 999px; padding: 1px 10px; font-size: 12.5px; margin: 0 4px 4px 0; }
+  ol.points { padding-left: 22px; }
+  ol.points li { margin-bottom: 13px; }
+  footer { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 26px; }
+
+  /* 390 档实测撑破过：前两列的 nowrap 把 section 顶到 564 宽（视口只有 375）。
+   * 手机上宁可换行也不许横向滚，所以放开 nowrap 并让表格自己兜住剩余的宽度。 */
+  @media (max-width: 620px) {
+    body { padding: 18px 10px 44px; }
+    .hero, section { padding: 18px 15px; border-radius: 12px; }
+    h1 { font-size: 21px; }
+    h2 { font-size: 17px; }
+    table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    thead, tbody, tr { width: 100%; }
+    th, td { padding: 7px 8px; }
+    td:first-child, td:nth-child(2) { white-space: normal; }
+    td:nth-child(2) { font-family: inherit; }
+  }
+</style>
+</head>
+<body>
+<main>
+
+  <div class="hero">
+    <h1>天气助手 · 技术栈说明</h1>
+    <p class="sub">交付件 · 与同名 Markdown 内容一致 · 数字均为当前工作区实测（2026-10-07，壳版本 <code>CACHE=v124</code>）</p>
+    <p class="lead"><b>零构建静态 PWA + Capacitor Android 原生壳。</b>
+      没有框架、没有打包器、没有 CSS 预处理器 —— 前端就是浏览器原生 ES Modules 直接跑；
+      需要系统能力的部分（通知、后台保活、桌面图标、原生定位）用自写 Java 插件补。
+      整个工程运行时依赖只有 4 个，全部是 Capacitor。</p>
+    <div class="stats">
+      <span class="stat"><b>62</b>ES 模块</span>
+      <span class="stat"><b>0</b>构建步骤</span>
+      <span class="stat"><b>2</b>套主题</span>
+      <span class="stat"><b>5</b>家数据源</span>
+      <span class="stat"><b>127 + 17</b>浏览器 / Node 断言</span>
+      <span class="stat"><b>113</b>处变异测试</span>
+    </div>
+  </div>
+
+  <section>
+    <h2><span class="n">1</span>前端层</h2>
+    <table>
+      <thead><tr><th>技术</th><th>版本 / 规模</th><th>在这里解决什么</th></tr></thead>
+      <tbody>
+        <tr><td>原生 ES Modules</td><td>63 模块 · 无 bundler</td><td>浏览器直接 <code>import</code>，源码即产物；视图层、控制器层、设置面板按归属分片（<code>js/ui/</code> 14 个 + <code>js/settings/</code> 8 个 + 七个控制器文件），入口只挂名字</td></tr>
+        <tr><td>Service Worker</td><td>CACHE v124 · SHELL 67 项</td><td>离线打开应用壳。缓存优先，天气 API 一律走网络不缓存。改任何 js/css/html 必须升一次 CACHE 号；那份清单不手写，由 <code>tools/gen-shell.mjs</code> 按磁盘重写</td></tr>
+        <tr><td>Web App Manifest</td><td>+ theme-color</td><td>加桌；状态栏颜色跟随主题 —— 每套主题自带一个 meta 值（现 2 套），换主题时由 <code>applyTheme</code> 改写，manifest 里那份只是首屏默认</td></tr>
+        <tr><td>CSS 自定义属性主题系统</td><td>源片 20 片 → 产物 1172 行 · 102 处变量 · 2 套</td><td>组件只认变量不写死颜色，换主题＝整块覆盖 <code>body[data-theme]</code>。新增一套只改一个 CSS 片 + 清单一行；产物由 <code>tools/gen-styles.mjs</code> 按文件名顺序拼，别手改</td></tr>
+        <tr><td><code>color-mix()</code> + <code>backdrop-filter</code></td><td>每套一档 α（薄荷蓝 85 / 夜航 72）</td><td>背景透出程度的毛玻璃。<b>2026-10-04 背景模块整块取消</b>：那个「透出程度」滑杆没了，α / 混入 / 模糊三量成为主题自己的设计值，下限仍由逐元素 AA 定</td></tr>
+        <tr><td><code>@media (prefers-contrast: more)</code></td><td>一票否决</td><td>系统开「增强对比度」时整片玻璃退回实底</td></tr>
+        <tr><td>内联 SVG + CSS 渐变</td><td>零图片资源（底是主题内六条渐变）</td><td>天气图标、桌面图标缩略图全是内联 SVG；因此没有图片压缩、多倍图、体积优化这套工序</td></tr>
+        <tr><td>localStorage</td><td>一份配置 + 六个缓存/记账键</td><td>配置对象含收藏、通知字段、预警门槛、生辰，并做进程内缓存（渲染路径高频读）；检索缓存、墨迹城市表三张、华为榜、预警去重账各占一键，互不序列化对方</td></tr>
+      </tbody>
+    </table>
+    <p class="note">不支持 <code>color-mix</code> 的浏览器（&lt;Chrome 111）命中前一条实底声明，退化成「不能变透」而不是「看不清」。</p>
+  </section>
+
+  <section>
+    <h2><span class="n">2</span>原生壳</h2>
+    <table>
+      <thead><tr><th>技术</th><th>版本</th><th>在这里解决什么</th></tr></thead>
+      <tbody>
+        <tr><td>Capacitor</td><td>7.6.9</td><td>WebView 壳 + JS↔Java 桥。<code>webDir</code> 指向 <code>weather-app</code>，前端产物直接拷进 <code>assets/public/</code></td></tr>
+        <tr><td>Android SDK</td><td>min 23 / target 35</td><td>一套代码覆盖 Android 6 以上</td></tr>
+        <tr><td>Gradle</td><td>assembleDebug</td><td>出包。自写 Java 类落在 <code>classes4.dex</code>，核对产物要拆包比字符串，不能看构建日志</td></tr>
+        <tr><td>自写插件 ×3</td><td>Java</td><td><code>WeatherIcon</code>（换桌面图标）、<code>WeatherNotify</code>（高优先级通知）、<code>NativeLocation</code>（系统定位，比网页 Geolocation 拿得准）</td></tr>
+        <tr><td>前台服务 + AlarmManager</td><td>类型 specialUse</td><td>应用被划掉后仍每小时刷新常驻通知、每 10 分钟盯一次预警。<code>dataSync</code> 在 Android 14 起不许从后台拉起，所以换 <code>specialUse</code></td></tr>
+        <tr><td><code>activity-alias</code> ×4</td><td>清单</td><td>桌面图标的唯一运行时把手：图标是编译期资源，只能在预注册好的四个入口之间开关</td></tr>
+        <tr><td>通知渠道 ×2</td><td>HIGH / LOW</td><td>常驻条（LOW + ONGOING）弹不出横幅，预警必须走独立的高优先级渠道</td></tr>
+        <tr><td>CapacitorHttp</td><td>—</td><td>绕 CORS。墨迹这类不给浏览器跨域的源，只有壳里的原生 HTTP 拿得到</td></tr>
+        <tr><td>权限</td><td>7 项</td><td>定位 fine/coarse、网络、前台服务 + specialUse、通知、开机自启 —— 只申请真正用到的</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="n">3</span>数据层：多家源，一套接口</h2>
+    <p><span class="pill">中国天气 nmc</span><span class="pill">Open-Meteo</span><span class="pill">wttr.in</span><span class="pill">墨迹天气（逆向）</span><span class="pill">自定义 JSON</span></p>
+    <ul>
+      <li><b>Provider Registry</b>：每家源声明能力位 <code>byCityName / air / hourly / daily / alert / background</code> 与 <code>nativeOnly</code>。界面按能力位决定「这一栏有没有、这条提示说什么」，而不是给每家源写一个 if。</li>
+      <li><b>字段映射 DSL</b>：路径取值 + <code>mul/add</code> 单位换算 + <code>map</code> 码表 + <code>codes:"wmo"|"owm"</code> 补中文描述。只解析 JSON，不执行任何代码。</li>
+      <li><b>AQI 双标准</b>：中国 HJ 633 与美国 EPA 两套 breakpoint（取自 mee.gov.cn / epa.gov），每枚徽章带可见的出处与标准标注；字色由底色决定（在近黑与白之间取比值更高的那端）。</li>
+      <li><b>站点码表</b>：72KB 中国天气站表按需动态 import、刻意不进 SW 清单；坐标做过一轮清洗（重名站会把几百公里外那个省的天气当成用户这里的）。</li>
+      <li><b>地名解析</b>：Photon + Open-Meteo 双源合并打分，带类别加权 —— 用户打「X县」时不许被别省同名的更高级别点顶掉。</li>
+      <li><b>数据诚信约束</b>：宁缺勿错 —— 缺测不许退成 <code>0</code>，别城的报文不许画在本城卡上，拿不到就明说。判「取到了」的最后一道闸是<b>结构</b>（这一页里到底有没有天气），不是状态码。</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2><span class="n">4</span>质量与工具链</h2>
+    <table>
+      <thead><tr><th>通道</th><th>规模</th><th>特点</th></tr></thead>
+      <tbody>
+        <tr><td>浏览器内断言</td><td>127 条 · ≈60s</td><td>注入被测页自己的 realm 跑，量真 DOM、真 CSS、真 computed style，不是模拟。覆盖数据解析、竞态、渲染三态、逐主题 AA</td></tr>
+        <tr><td>材质数学单测</td><td>17 条 · Node</td><td>期望值取外部事实（<code>#767676</code> 对白 4.54 过、<code>#777777</code> 不过），避免「自己证自己」。原 27 条里滑杆换算与照片下限那两组随背景模块删掉 10 条（按 <code>git diff d2574e6..41bbdbe</code> 数的）</td></tr>
+        <tr><td>变异测试</td><td>115 处改动</td><td>每条断言都要能被「改坏实现」逼红。写空比没断言更糟 —— 历史上三条假绿全来自测量代码本身。表按族分七片放在 <code>tools/falsify/mut/</code>；配套三件秒级闸：<code>anchor-audit</code>、<code>shell-check</code>、<code>commit-carry</code></td></tr>
+        <tr><td>真机 WebView CDP</td><td>两台机通用</td><td>量「只有设备上才成立」的样式契约。握手只认一件事：别发 <code>Origin</code> 头</td></tr>
+        <tr><td>GPU 帧测量</td><td>dumpsys gfxinfo</td><td>判卡死看帧直方图而不是有没有 ANR —— 合成器被饿死时系统根本不弹 ANR</td></tr>
+        <tr><td>原生回归</td><td>四套预设逐个切</td><td>原生调用的成败不许看界面：每切一次都去问系统侧 <code>cmd package resolve-activity</code> 到底是哪个 alias（2026-09-29 那个「从来没换成功过」就是这么抓的）</td></tr>
+        <tr><td>无障碍</td><td>WCAG 2.x AA</td><td>字色 vs 往上合成的真实底色链（渐变按每个色标各算一次取最坏 = F83）；必须先注入 <code>transition:none</code>，否则读到的是两套配色之间的插值</td></tr>
+        <tr><td>取色与数据脚本</td><td>Python + Pillow</td><td>图片带 ICC 描述文件时必须先转 sRGB 再量（PIL 按原样字节报数，而浏览器会转）；站点码表构建与脏坐标清洗也是 Python</td></tr>
+        <tr><td>版本管理</td><td>本地 git</td><td>无远端、无 CI —— 所有「做完了」的判断都靠本机 + 两台真机的实测</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="n">5</span>规模速览</h2>
+    <table>
+      <tbody>
+        <tr><td>前端模块</td><td>63 个</td><td>ES Modules，无打包、无转译、无压缩；入口 <code>js/main.js</code> 的静态图 62 发请求（第 63 个模块是动态 import 的站点码表）</td></tr>
+        <tr><td>样式</td><td>源片 20 片 → 产物 1172 行</td><td>102 处变量声明 · 2 套主题 · 无预设背景（底是主题内六条渐变）</td></tr>
+        <tr><td>页面骨架</td><td>384 行</td><td>单文件 <code>index.html</code></td></tr>
+        <tr><td>原生</td><td>7 个 Java 类</td><td>3 插件 + 1 前台服务 + 2 接收器 + MainActivity，另有 4 个桌面入口</td></tr>
+        <tr><td>测试</td><td>127 + 17 + 115</td><td>浏览器断言 + Node 断言 + 变异，另三条只能在真机上量的通道（图标切换、GPU 滚动、装机五判据）</td></tr>
+        <tr><td>运行时依赖</td><td>4 个</td><td>全部是 Capacitor：<code>core</code> / <code>android</code> 加 <code>app</code>、<code>geolocation</code> 两个插件（CLI 在 devDependencies 里）</td></tr>
+        <tr><td>构建步骤</td><td>0</td><td>无打包、无转译、无压缩。但有两个<b>生成件</b>：<code>styles.css</code>（拼自 <code>src/styles/</code>）与 <code>sw.js</code> 里的 SHELL 清单，都由脚本按磁盘重写，<code>npm run apk</code> 第一句就是它们，漂移被 <code>shell-check</code> 拦下</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2><span class="n">6</span>值得单独讲的五条</h2>
+    <ol class="points">
+      <li><b>无构建链是主动选择，不是偷懒。</b>源码即产物，「构建后行为不一致」这类问题不存在；代价是要自己管缓存版本（SW 的 CACHE 号）和请求数（63 个模块里入口那张静态图占 62 发请求（第 63 个是动态 import 的站点码表），靠壳里的本地文件消化掉）。按归属分片那一轮把这笔账量了：入口静态图 38 → 62，DCL +15ms、首屏「温度到位」+5ms，而 <b>FCP 48ms 没动</b> —— 换来的是「每条新功能都得改同一个文件」那个冲突现场没了。</li>
+      <li><b>测量通道本身会坏。</b>这个项目里最贵的几次 bug 都不是代码坏了，而是「看起来在测、其实什么都没测」：锁屏下 <code>getComputedStyle</code> 给半新半旧的读数、后台标签被节流到每分钟一个宏任务、假响应表照着实现写（实现错了它照样「成功」回答）。所以每条断言都要被改坏实现逼红一次才算数。</li>
+      <li><b>可访问性是量的，不是看的。</b>2 套主题 × 各自六条渐变 × 四个色标（主文字 / 次要文字 / <code>--pop</code> / <code>--accent</code>）逐元素往上合成真实底色，渐变按每个色标各算一次取最坏（WCAG F83）；达标线是 AA(4.5) 再加 0.5 余量。本轮实测最低：薄荷蓝 5.01、夜航 5.33。</li>
+      <li><b>逆向数据源要连失败路径一起断言。</b>同一家常见三种「200 但正文不是数据」的形态（限流文案、404 模板、改版空壳），只看状态码一律算取到，界面就成了一张全 <code>--</code> 的空屏 —— 空屏比报错更坏，因为它会被读成「今天没数据」。</li>
+      <li><b>原生能力的边界要在界面上说实话。</b>桌面图标只能在那 4 套预设里换（图标是编译期资源），所以那一栏压根没有「从相册选图」按钮，而不是放个灰按钮让人以为坏了。</li>
+    </ol>
+  </section>
+
+  <footer>天气助手 · 技术栈说明 · 2026-10-07（壳版本 v124）· 纯静态单文件，无外部资源，可直接打印</footer>
+</main>
+</body>
+</html>

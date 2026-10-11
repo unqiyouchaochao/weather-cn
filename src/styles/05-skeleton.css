@@ -1,0 +1,43 @@
+/* 骨架屏（FR17） */
+.loading { animation: fade .2s ease; }
+.sk-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.forecast .sk-day {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  height: 96px;
+  box-shadow: var(--shadow);
+}
+.sk {
+  background: linear-gradient(90deg, var(--line) 25%, rgba(127,127,127,0.18) 37%, var(--line) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: 8px;
+}
+.sk-loc { width: 50%; height: 18px; margin-bottom: 14px; }
+.sk-temp { width: 60%; height: 52px; }
+.sk-temp.sm { width: 70%; height: 28px; margin: 10px auto; }
+.sk-meta { width: 70%; height: 14px; margin-top: 12px; }
+.sk-line { width: 80%; height: 12px; margin: 8px auto; }
+.sk-day { background: linear-gradient(90deg, var(--line) 25%, rgba(127,127,127,0.18) 37%, var(--line) 63%); background-size: 400% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+.status .retry {
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  border-radius: 8px;
+  padding: 2px 10px;
+  margin-left: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
