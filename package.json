@@ -4,8 +4,10 @@
   "private": true,
   "description": "天气助手 —— 纯静态 PWA + Capacitor Android 壳",
   "scripts": {
-    "serve": "python -m http.server 8150 --bind 127.0.0.1 --directory weather-app",
-    "serve:lan": "python -m http.server 8150 --bind 0.0.0.0 --directory weather-app",
+    "serve": "node tools/serve.mjs 8150 weather-app",
+    "serve:lan": "node tools/serve.mjs 8150 weather-app 0.0.0.0",
+    "serve:checks": "node tools/serve.mjs 8169",
+    "checks": "node tools/run-checks.mjs",
     "dev": "cap run android --live-reload --host localhost --port 8150 --forwardPorts 8150:8150",
     "dev:wifi": "cap run android --live-reload --port 8150",
     "sync": "cap sync android",
