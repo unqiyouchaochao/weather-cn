@@ -1245,7 +1245,8 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
 
 /* ---------- 墨迹天气：只测解析与「仅手机」那道闸 ----------
  * 它的接口不放行浏览器跨域（实测一个 access-control-* 头都没有），网络那一半只能在真机验；
- * 这里喂的是 2026-09-27 抓下来的真实响应字节（tests/fixtures/moji-*）。 */
+ * 这里喂的是 `tests/fixtures/moji-*` —— 2026-10-12 起它们是**合成夹具**（容器/类名/文本形状
+ * 与诱饵照真页重建，数值与当初抓到的真字节一致），不再放别人站点的整页 HTML。 */
 {
   const mj = await import('/weather-app/js/providers/mojiWeather.js');
   const { providerNativeOnly, providerBackground, providerGivesAlerts, getProvider } = await import('/weather-app/js/providers/index.js');
@@ -1383,8 +1384,9 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   const mj = await import('/weather-app/js/providers/mojiWeather.js');
   const html = await (await fetch('/tests/fixtures/moji-city.html')).text();
   const hourTxt = await (await fetch('/tests/fixtures/moji-hour24.json')).text();
-  // 下面三份是 2026-09-29 从真机壳里抓下来的**原字节**（省表 13.8KB、广东省城市表 70.9KB、
-  // 以及「按中文路径取城市页」实际拿到的那张 p404 模板）—— 索引页的形状以真字节为准，不靠想象
+  // 下面三份的形状取自 2026-09-29 真机壳里抓下来的那三张原页（省表 13.8KB、广东省城市表
+  // 70.9KB、以及「按中文路径取城市页」实际拿到的那张 p404 模板），2026-10-12 起夹具本身是
+  // 照那些形状重建的合成页 —— 索引页的形状仍以真页为准，只是不再把别人整页 HTML 存进仓库
   const provHtml = await (await fetch('/tests/fixtures/moji-provinces.html')).text();
   const cityHtml = await (await fetch('/tests/fixtures/moji-cities-guangdong.html')).text();
   const p404Html = await (await fetch('/tests/fixtures/moji-p404.html')).text();
