@@ -3,7 +3,8 @@
  * 改完任何 js/css/html 必须升一次 CACHE，否则老用户拿到的仍是旧壳。
  * SHELL 那份清单不手写：`node tools/gen-shell.mjs`（npm run apk 第一句就跑它）按磁盘上的文件重写，
  * 手写漏一项是「联网一切正常、离线才白屏」那种 bug。 */
-const CACHE = 'weather-studio-v133';
+/* 号段跳到 v138：main 分支那一侧的工作树已经用到 v137，两条线共用一个号会退化成旧缓存。 */
+const CACHE = 'weather-studio-v138';
 /* SHELL:BEGIN 这份清单由 tools/gen-shell.mjs 生成，别手工增删 */
 const SHELL = [
   './',

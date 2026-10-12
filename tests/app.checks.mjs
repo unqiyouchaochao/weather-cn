@@ -2492,4 +2492,30 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
     '温度=' + 温度() + '，可见块数=' + 首页有几块() + '，标题=' + 标题().slice(0, 18));
 }
 
+/* ---------- 主卡右上角那一角不许被压住（2026-10-12 真机装机发现）
+ * `.star` 绝对定位在卡片右上角，它不在 `.current-head` 那条 flex 行里，所以那一行压根不知道要给它让位：
+ * 行的右端只到卡片内容边（离 padding-box 右沿 22px），星的最左在 48px —— 水平重叠 26px，
+ * 64px 的天气图标被星压掉一角，顺带还被 flex 从 64 压到 56（`.cur-ic` 当时没有 flex-shrink:0）。
+ * 量的是「两个矩形的交」而不是「图标宽度」：只卡宽度的话，把预留量从 .current-head 挪去给 .star 加 margin
+ * 照样过线，而重叠会跟着回来。 */
+{
+  const 星 = document.querySelector('.star');
+  const 图标 = document.querySelector('.cur-ic');
+  const 行 = document.querySelector('.current-head');
+  const a = 图标.getBoundingClientRect(), b = 星.getBoundingClientRect();
+  const 交 = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+  /* 压窄那一半要单独挤一次才量得到：正常视口下这一行离装不下还远，`flex-shrink` 少写一半也照样过线，
+   * 而真机 376 CSS px 那一档确实被压成了 56。按到 120px 是**故意压过头**：不管当时那串地址长短，
+   * 这个宽度下「地址 + 64 图标 + 36 预留」一定装不下，谁没写 shrink:0 谁就被削。 */
+  const 原宽 = 行.style.width;
+  行.style.width = '120px';
+  const 挤窄后 = Math.round(图标.getBoundingClientRect().width);
+  行.style.width = 原宽;
+  push('主卡的天气图标与收藏星不相交，行被按窄时图标也不许被压扁',
+    !交 && 挤窄后 === 64,
+    '图标 ' + Math.round(a.left) + '–' + Math.round(a.right) + '，星 ' +
+    Math.round(b.left) + '–' + Math.round(b.right) + '，相交=' + 交 +
+    '；行按到 120px 之后图标宽 ' + 挤窄后);
+}
+
 window.__CHECKS__ = R;
