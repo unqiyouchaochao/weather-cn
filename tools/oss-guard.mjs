@@ -20,6 +20,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 /** 路径规则：命中即违规，第二条是给人看的原因 */
 const 禁路径 = [
   [/^private\//, '个人版素材与产物'],
+  [/^\.workbuddy[/\\]/, '内部记忆（记着本机 keystore 路径这类东西）—— 内部线跟踪它，公开线一个文件都不许有'],
   [/seed-plugins[/\\]/, '安装包自带主题包（个人版构建时才存在）'],
   [/^weather-app[/\\]img[/\\]/, '个人版注入的图片'],
   [/21-tianyi-character\.css$/, '个人版注入的样式片'],
