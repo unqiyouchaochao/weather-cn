@@ -34,6 +34,10 @@ tests/shots/
 
 # 个人版素材（洛天依角色图、版权受限资源）—— 绝不进公开仓库
 private/
+# 内部记忆（工程规矩、踩坑账）。内部线（main）是**跟踪**它的，里面还记着本机 keystore 路径，
+# 而这条目录名不带「private」字样 —— 不挡的话一次 `git add .` 就跟着进公开线了。
+# tools/oss-guard.mjs 里另有一条同名禁路径兜底，两道都要：这道防误加，那道防并分支时带进来。
+.workbuddy/
 # 个人版构建时临时放进 web 根的主题包（build-personal.mjs 拷入，构建后自动删除）
 weather-app/seed-plugins/
 # 旧的个人版注入物（2026-10-10 起改用主题插件包，不再注 CSS/图片；留着规则以防回退时漏掉）
