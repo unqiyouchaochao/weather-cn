@@ -1,0 +1,851 @@
+{
+  "capturedAt": "2026-09-29",
+  "capturedFrom": "合成件：结构照历史响应裁剪，坐标与设备信息已替换",
+  "note": "合成件：用于固定检索排序形状；名称与等级照历史响应，坐标整体平移，不再对应真实地点。",
+  "photon_xinxingxian": {
+    "status": 200,
+    "body": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 1668242381,
+            "osm_key": "place",
+            "osm_value": "city",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "Xincheng",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.2195936,
+              25.6984291
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "R",
+            "osm_id": 3031848,
+            "osm_key": "place",
+            "osm_value": "county",
+            "type": "county",
+            "name": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN",
+            "extra": {
+              "admin_level": "6"
+            },
+            "extent": [
+              119.9607559,
+              25.8420492,
+              120.5167102,
+              25.3672547
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.1968457,
+              25.6350852
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 5652911917,
+            "osm_key": "railway",
+            "osm_value": "station",
+            "type": "house",
+            "name": "Xinxingxian",
+            "street": "站前路",
+            "locality": "Wong Kong Development Area",
+            "district": "Tung Hau",
+            "city": "Xincheng",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.2241218,
+              25.7406517
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 908722450,
+            "osm_key": "landuse",
+            "osm_value": "commercial",
+            "type": "locality",
+            "name": "新兴县禅宗文化产业基地",
+            "district": "Zen Area Town",
+            "city": "Taiping",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.2212201,
+              25.6506372,
+              120.2231184,
+              25.6480799
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.2221725,
+              25.6494614
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 593030327,
+            "osm_key": "landuse",
+            "osm_value": "military",
+            "type": "other",
+            "name": "新兴县武装部",
+            "district": "Hau Tsuen (Haocun)",
+            "city": "Xincheng",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.2452706,
+              25.702271,
+              120.2468156,
+              25.7002844
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.246039,
+              25.7013624
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 939214678,
+            "osm_key": "landuse",
+            "osm_value": "industrial",
+            "type": "locality",
+            "name": "新兴县城区第二污水处理厂",
+            "district": "枫洞社区(一片区)",
+            "city": "Xincheng",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.195234,
+              25.7184827,
+              120.198005,
+              25.7157847
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.1965695,
+              25.7173103
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 645256713,
+            "osm_key": "landuse",
+            "osm_value": "industrial",
+            "type": "locality",
+            "name": "新兴县建兴陶瓷有限公司",
+            "district": "Pu Ha Tsuen",
+            "city": "Rencun",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.3675155,
+              25.6984268,
+              120.3830359,
+              25.6819041
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.3781954,
+              25.6902365
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 1551023144,
+            "osm_key": "landuse",
+            "osm_value": "industrial",
+            "type": "locality",
+            "name": "新兴县循环经济环保项目（垃圾焚烧发电厂）",
+            "city": "广东省西江林业局良洞迳林场",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.1692478,
+              25.7377816,
+              120.1714621,
+              25.7356957
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.1703549,
+              25.7367388
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 1201097796,
+            "osm_key": "landuse",
+            "osm_value": "farmyard",
+            "type": "locality",
+            "name": "新兴县满氏家庭农场",
+            "district": "Tai Tong Au",
+            "city": "Taiping",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN",
+            "extent": [
+              120.2894551,
+              25.5553201,
+              120.2929225,
+              25.551507
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.291228,
+              25.5534001
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 667662925,
+            "osm_key": "landuse",
+            "osm_value": "industrial",
+            "type": "locality",
+            "name": "新兴县东源公司第一水厂",
+            "district": "Yü Tsuen",
+            "city": "Taiping",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.2375052,
+              25.6620457,
+              120.2405541,
+              25.6599579
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.2393776,
+              25.6613933
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 530183605,
+            "osm_key": "landuse",
+            "osm_value": "residential",
+            "type": "locality",
+            "name": "新兴县水电开发公司小区",
+            "district": "Historic District",
+            "city": "Xincheng",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.2273767,
+              25.695564,
+              120.2286533,
+              25.6939863
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.2279267,
+              25.6945654
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "W",
+            "osm_id": 533929072,
+            "osm_key": "landuse",
+            "osm_value": "residential",
+            "type": "locality",
+            "name": "新兴县公安局",
+            "district": "Historic District",
+            "city": "Xincheng",
+            "county": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extent": [
+              120.2197266,
+              25.6966473,
+              120.2207045,
+              25.6959905
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.2201789,
+              25.6962473
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "photon_xinxing": {
+    "status": 200,
+    "body": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "R",
+            "osm_id": 3031848,
+            "osm_key": "place",
+            "osm_value": "county",
+            "type": "county",
+            "name": "Xinxing",
+            "state": "Guangdong Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN",
+            "extra": {
+              "admin_level": "6"
+            },
+            "extent": [
+              119.9607559,
+              25.8420492,
+              120.5167102,
+              25.3672547
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              120.1968457,
+              25.6350852
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "R",
+            "osm_id": 9470602,
+            "osm_key": "place",
+            "osm_value": "district",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "Qitaihe",
+            "state": "Heilongjiang Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN",
+            "extra": {
+              "admin_level": "6"
+            },
+            "extent": [
+              138.678636,
+              49.2487865,
+              139.6192496,
+              48.7381409
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              139.2003869,
+              49.0114388
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 4374017592,
+            "osm_key": "place",
+            "osm_value": "city",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "Qitaihe",
+            "state": "Heilongjiang Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              138.8677739,
+              48.8155808
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 13566556469,
+            "osm_key": "place",
+            "osm_value": "village",
+            "type": "district",
+            "name": "新兴",
+            "city": "Yuzhou",
+            "county": "Yulin",
+            "state": "Guangxi Zhuang Autonomous Region",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              118.0587902,
+              25.6452579
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 10302907186,
+            "osm_key": "place",
+            "osm_value": "village",
+            "type": "district",
+            "name": "新兴",
+            "city": "Weifang",
+            "state": "Shandong Province",
+            "country": "China",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              127.5064493,
+              39.532597
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 3180216943,
+            "osm_key": "place",
+            "osm_value": "village",
+            "type": "district",
+            "name": "新兴",
+            "city": "Linyi",
+            "state": "Shandong Province",
+            "country": "China",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              125.8367354,
+              38.8244266
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 6356909651,
+            "osm_key": "place",
+            "osm_value": "town",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "Harbin",
+            "county": "Pingfang District",
+            "state": "Heilongjiang Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              134.50005190000002,
+              48.5094271
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 3251561635,
+            "osm_key": "place",
+            "osm_value": "town",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "新兴乡",
+            "county": "Yi'an",
+            "state": "Heilongjiang Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              133.0128605,
+              50.7338047
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "R",
+            "osm_id": 12278078,
+            "osm_key": "place",
+            "osm_value": "suburb",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "Jieyang",
+            "state": "Guangdong Province",
+            "country": "China",
+            "countrycode": "CN",
+            "extra": {
+              "admin_level": "8"
+            },
+            "extent": [
+              124.3502359,
+              26.5373669,
+              124.3759369,
+              26.5247822
+            ]
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              124.3612651,
+              26.531491
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 5010931549,
+            "osm_key": "place",
+            "osm_value": "town",
+            "type": "city",
+            "name": "Xinxing",
+            "county": "Tongyu",
+            "state": "Jilin Province",
+            "country": "China",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              130.8425794,
+              47.7245784
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 2183021002,
+            "osm_key": "place",
+            "osm_value": "town",
+            "type": "district",
+            "name": "Xinxing",
+            "city": "新兴鄂伦春族乡",
+            "county": "Xunke",
+            "state": "Heilongjiang Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              137.0002607,
+              52.3545458
+            ]
+          }
+        },
+        {
+          "type": "Feature",
+          "properties": {
+            "osm_type": "N",
+            "osm_id": 6390202279,
+            "osm_key": "place",
+            "osm_value": "quarter",
+            "type": "locality",
+            "name": "Xinxing",
+            "district": "Xilin",
+            "city": "Jinlin",
+            "county": "Yichun",
+            "state": "Heilongjiang Province",
+            "country": "China",
+            "postcode": "000000",
+            "countrycode": "CN"
+          },
+          "geometry": {
+            "type": "Point",
+            "coordinates": [
+              137.2778082,
+              50.4935501
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "openmeteo_xinxing": {
+    "status": 200,
+    "body": {
+      "results": [
+        {
+          "id": 1908011,
+          "name": "新兴",
+          "latitude": 34.77597,
+          "longitude": 105.32216,
+          "elevation": 1295,
+          "feature_code": "PPLA4",
+          "country_code": "CN",
+          "admin1_id": 1810676,
+          "admin2_id": 1792891,
+          "timezone": "Asia/Shanghai",
+          "population": 97483,
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "甘肃",
+          "admin2": "天水市"
+        },
+        {
+          "id": 1814470,
+          "name": "新兴",
+          "latitude": 39.86694,
+          "longitude": 124.12304,
+          "elevation": 4,
+          "feature_code": "PPLA3",
+          "country_code": "CN",
+          "admin1_id": 2036115,
+          "admin2_id": 2037885,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "辽宁",
+          "admin2": "丹东市"
+        },
+        {
+          "id": 2038647,
+          "name": "新兴",
+          "latitude": 47.15686,
+          "longitude": 123.80643,
+          "elevation": 144,
+          "feature_code": "PPLA3",
+          "country_code": "CN",
+          "admin1_id": 2036965,
+          "admin2_id": 2035264,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "黑龙江",
+          "admin2": "齐齐哈尔市"
+        },
+        {
+          "id": 1788563,
+          "name": "新兴",
+          "latitude": 34.77556,
+          "longitude": 108.885,
+          "elevation": 646,
+          "feature_code": "PPLA4",
+          "country_code": "CN",
+          "admin1_id": 1796480,
+          "admin2_id": 1790352,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "陕西",
+          "admin2": "咸阳市"
+        },
+        {
+          "id": 1998292,
+          "name": "新兴",
+          "latitude": 34.66689,
+          "longitude": 109.27436,
+          "elevation": 384,
+          "feature_code": "PPLA4",
+          "country_code": "CN",
+          "admin1_id": 1796480,
+          "admin2_id": 1790384,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "陕西",
+          "admin2": "西安市"
+        },
+        {
+          "id": 2033644,
+          "name": "新兴",
+          "latitude": 49.36837,
+          "longitude": 129.0015,
+          "elevation": 134,
+          "feature_code": "PPLA4",
+          "country_code": "CN",
+          "admin1_id": 2036965,
+          "admin2_id": 2036971,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "黑龙江",
+          "admin2": "黑河市"
+        },
+        {
+          "id": 8411521,
+          "name": "新兴",
+          "latitude": 39.1042,
+          "longitude": 117.18082,
+          "elevation": 8,
+          "feature_code": "PPLA4",
+          "country_code": "CN",
+          "admin1_id": 1792943,
+          "admin2_id": 12324202,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "天津市",
+          "admin2": "天津市"
+        },
+        {
+          "id": 8505393,
+          "name": "新兴",
+          "latitude": 47.73453,
+          "longitude": 125.01282,
+          "elevation": 175,
+          "feature_code": "PPLA4",
+          "country_code": "CN",
+          "admin1_id": 2036965,
+          "admin2_id": 2035264,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "黑龙江",
+          "admin2": "齐齐哈尔市"
+        },
+        {
+          "id": 1788565,
+          "name": "新兴",
+          "latitude": 31.12529,
+          "longitude": 103.84986,
+          "elevation": 799,
+          "feature_code": "PPL",
+          "country_code": "CN",
+          "admin1_id": 1794299,
+          "admin2_id": 1815285,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "四川",
+          "admin2": "成都市"
+        },
+        {
+          "id": 1936447,
+          "name": "新兴",
+          "latitude": 22.83724,
+          "longitude": 116.09902,
+          "elevation": 9,
+          "feature_code": "PPL",
+          "country_code": "CN",
+          "admin1_id": 1809935,
+          "admin2_id": 1805830,
+          "timezone": "Asia/Shanghai",
+          "country_id": 1814991,
+          "country": "中国",
+          "admin1": "广东",
+          "admin2": "揭阳市"
+        }
+      ],
+      "generationtime_ms": 0.2425909
+    }
+  },
+  "openmeteo_xinxingxian": {
+    "status": 200,
+    "body": {
+      "generationtime_ms": 0.23150444
+    }
+  }
+}

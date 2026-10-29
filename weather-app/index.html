@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>天气助手 · Weather Studio</title>
+  <meta name="theme-color" content="#2b7fff" />
+  <!-- 提前把 DNS+TLS 握手做掉：首发的跨域请求实测能省下 100~300ms -->
+  <link rel="preconnect" href="https://api.open-meteo.com" />
+  <link rel="preconnect" href="https://geocoding-api.open-meteo.com" />
+  <link rel="preconnect" href="https://air-quality-api.open-meteo.com" />
+  <link rel="preconnect" href="https://www.nmc.cn" />
+  <link rel="preconnect" href="https://photon.komoot.io" />
+  <link rel="preconnect" href="https://api.bigdatacloud.net" />
+  <link rel="preconnect" href="https://wttr.in" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <!-- styles.css 是产物：源片在 src/styles/NN-*.css，按文件名顺序拼出来（node tools/gen-styles.mjs）。
+       别在这里挂第二个 stylesheet —— CSS 请求是 render-blocking 的，而且 falsify 表里那批样式变异、
+       回归里那两条「名单漂移」检查、theme-glass-scan 都只认这一份文件的文本。 -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-tab="weather">
+  <!-- 这里以前垫着一层 #bgLayer（预设图 / 相册图）。2026-10-04 背景模块取消，底只剩主题自带的
+       天气渐变，直接画在 body 上：见 js/lib/themes.js 的 w 那一格与 styles.css 的 data-weather 规则。
+       2026-10-06 主题收敛到两套，花嫁那一套连同它的装饰层（.petals 与 --lace 那几段）一起删掉了，
+       要回来只能从 git 历史捞 —— 现在 body 上没有任何装饰节点。 -->
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon" id="brandIcon"></span>
+        <div>
+          <h1>天气助手</h1>
+          <p class="sub">可随意接入任意天气预报 API</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="sync" id="syncDot" hidden title="正在更新数据"></span>
+        <!-- 图标名写在 data-icon 上，启动时由 lib/icons.js 的 hydrateIcons 填成内联 SVG。
+             markup 里不写 path：那是把图标库抄第二遍。深色/浅色那一枚由 applyTheme 现选。 -->
+        <button class="icon-btn" id="darkBtn" title="深色 / 浅色" aria-label="深色模式"></button>
+        <button class="gear" id="openSettings" title="设置" aria-label="设置"><span class="ic" data-icon="settings"></span></button>
+      </div>
+    </header>
+
+    <!-- 天气板块的全部内容都装进这一个容器里。两件事靠它：
+         ① 切换动画的作用域——被 transform 的是它，顶栏因此能原地不动（见 13-transition.css）；
+         ② 藏板块——CSS 一条选择器就够，不用再逐个数天气页散在 .app 下的那十个元素（见 11-tabs.css）。
+         为了让这一块是连续的，.foot 与 #compare 从「新闻板块之后」搬到了这里（天气页上的先后顺序没变）。
+         里面的缩进没跟着进一层：那会让这一段 150 行在 diff 里全变红，真正的改动反而被埋掉。 -->
+    <div class="view" id="weatherView">
+    <section class="search">
+      <input id="cityInput" type="text" placeholder="输入城市，或 lat,lon（如 34.34,108.94）" autocomplete="off" />
+      <button class="loc-btn" id="locBtn" title="定位我的位置" aria-label="定位"><span class="ic" data-icon="location"></span></button>
+      <button id="searchBtn">查询</button>
+      <div class="suggest" id="suggest" hidden role="listbox" aria-label="城市候选"></div>
+    </section>
+
+    <!-- 当前目标的经纬度：搜索框清空后靠这一行知道界面显示的是哪儿（由 ui.setCoords 填） -->
+    <p class="hint small" id="coordLine" hidden></p>
+
+    <section id="favBar" class="fav-bar"></section>
+    <button class="compare-btn" id="compareBtn" hidden>并排对比收藏城市</button>
+    <p id="compareHint" class="hint" hidden>收藏 2 个以上城市，即可一键并排对比。</p>
+
+    <section id="status" class="status" hidden></section>
+
+    <section id="loading" class="loading" hidden></section>
+
+    <!-- 首页三态里「什么都没查到」那一态的落点（见 ui.js 的 paintHome）。
+         以前失败只把骨架屏收掉、结果区留在 hidden 上，整页就是空白；报错还只能挤在状态行那一格，
+         会被钉住的定位提示盖掉。原因与重试入口在这张卡上自带，状态行空出来给别的用。 -->
+    <section id="emptyState" class="empty" hidden>
+      <span class="empty-ic" id="emptyIcon"></span>
+      <p class="empty-msg" id="emptyMsg"></p>
+      <button class="retry" id="emptyRetry">重试</button>
+    </section>
+
+    <main id="result" class="result" hidden>
+      <article class="current-card">
+        <!-- 收藏星由 ui.js 的 setStar() 现画（同一枚五角星，实心/描边看 .on），markup 里留空 -->
+        <button class="star" id="starBtn" title="收藏此城市" aria-label="收藏"></button>
+        <div class="current-head">
+          <div>
+            <div class="loc" id="locName">—</div>
+            <div class="desc" id="curDesc">—</div>
+          </div>
+          <span class="cur-ic" id="curIcon"></span>
+        </div>
+        <div class="cur-range" id="curRange">
+          <span class="cr-vals">
+            <span id="curHi" title="当日最高气温（预报值）">最高 --</span>
+            <span id="curLo" title="当日最低气温（预报值）">最低 --</span>
+          </span>
+          <span class="cur-src" id="curSource" title="本卡气温、湿度、风等数据的提供方">—</span>
+        </div>
+        <div class="cur-temp" id="curTemp">--°</div>
+        <div class="cur-meta">
+          <span id="curFeels">体感 --°</span>
+          <span id="curHum">湿度 --%</span>
+          <span id="curWind">风 -- km/h</span>
+        </div>
+      </article>
+
+      <!-- 气象预警：内容来自 js/lib/alerts.js（中央气象台），没有预警时整块隐藏 -->
+      <section id="alertWrap" hidden>
+        <h2 class="forecast-title">气象预警 <span class="scope" id="alertScope"></span></h2>
+        <div class="alert-list" id="alertList"></div>
+      </section>
+
+      <div class="details" id="details" hidden></div>
+
+      <section id="airWrap" hidden>
+        <h2 class="forecast-title">空气质量</h2>
+        <div class="air-card" id="air" role="button" tabindex="0" title="查看全国城市空气质量排名"></div>
+      </section>
+
+      <!-- 今日天气：今天 00–24 时的逐小时。数据来自 js/lib/hourly.js ——
+           当前源给得出逐小时就用它，给不出（默认源「中国天气」没有）退到 Open-Meteo 并在标题旁写明出处 -->
+      <section id="hourlyWrap" hidden>
+        <div class="sec-head">
+          <h2 class="forecast-title">今日天气 <span class="scope" id="hourlyScope">今天 00–23 时</span>
+            <span class="hr-src" id="hourlySrc" hidden></span></h2>
+          <button class="tool-btn" id="hourlyBack" hidden><span class="ic" data-icon="arrow-left"></span>返回今日天气</button>
+        </div>
+        <div class="hourly" id="hourly"></div>
+      </section>
+
+      <h2 class="forecast-title">未来预报</h2>
+      <div class="forecast" id="forecast"></div>
+    </main>
+
+    <footer class="foot">
+      <span id="providerTag">数据源：—</span>
+    </footer>
+
+    <section id="compare" class="compare" hidden>
+      <div class="compare-head">
+        <h2>城市天气对比</h2>
+        <div class="compare-tools">
+          <button class="tool" id="exportCsv" title="导出 CSV">CSV</button>
+          <button class="tool" id="exportImg" title="导出对比截图">截图</button>
+          <button class="tool" id="shareLink" title="复制对比分享链接">分享</button>
+          <button class="close" id="closeCompare" aria-label="关闭">×</button>
+        </div>
+      </div>
+      <div class="compare-grid" id="compareGrid"></div>
+    </section>
+    </div><!-- /#weatherView -->
+
+    <!-- 运势板块：内容由 js/fortune.js 渲染，纯本地推算，不发任何请求 -->
+    <section id="fortuneView" class="view fortune">
+      <div class="fz-day" id="fzDay"></div>
+
+      <!-- 今日黄历：没填生辰时占住顶部（此时页面本来没有别的可看）；一开始排盘就整卡收起 -->
+      <article class="fz-card fz-hl" id="fzHl" hidden></article>
+
+      <div class="fz-form" id="fzForm">
+        <label class="field inline">
+          <span>出生日期</span>
+          <input id="birthDate" type="date" min="1901-01-01" max="2099-12-31" />
+        </label>
+        <label class="field inline">
+          <span>时辰</span>
+          <select id="birthShichen"></select>
+        </label>
+      </div>
+      <!-- 生辰一旦设好就锁住：整套八字与每日运势都挂在它上面，误触改一天就全变了。
+           改它要长按两秒（进度条走完才解锁），「重置」走同一条门槛，否则一键就能绕过锁。 -->
+      <button class="fz-lock" type="button" id="fzLock" hidden>
+        <span class="fz-lock-fill"></span><span class="fz-lock-text" id="fzLockText"></span>
+      </button>
+      <p class="hint small" id="fzNote"></p>
+
+      <div class="fz-tools">
+        <button class="tool-btn" type="button" id="fzCopy" title="复制纯文本运势报告">复制文本</button>
+        <button class="tool-btn" type="button" id="fzPng" title="导出可分享的运势报告卡片">导出图片</button>
+        <button class="tool-btn fz-reset fz-hold" type="button" id="fzReset" title="长按 2 秒才会清空出生日期与时辰，回到今日黄历"><span class="fz-lock-fill"></span><span>重置</span></button>
+      </div>
+
+      <article class="fz-card" id="fzBazi"></article>
+      <article class="fz-card" id="fzSign"></article>
+
+      <p class="fz-disc">八字与星座均为民俗/娱乐内容：四柱由干支历算出（算法与精度见 <code>js/lib/ganzhi.js</code>），
+        运势文案是本机按「命主 + 当日日期」确定性生成的，不是预测，也不构成任何决策依据。</p>
+    </section>
+
+    <!-- 新闻板块：列表由 js/news.js 渲染，取数与解析在 js/lib/news.js（三条源的可达性不同，见那里的注释） -->
+    <section id="newsView" class="view news">
+      <div class="news-head">
+        <div class="news-chips" id="newsChips" role="tablist"></div>
+        <button class="tool-btn" type="button" id="newsRefresh" title="重新向这个源要一次">刷新</button>
+      </div>
+      <p class="news-note" id="newsNote" hidden></p>
+      <ul class="news-list" id="newsList"></ul>
+      <p class="news-src" id="newsSrc" hidden></p>
+      <p class="news-disc">新闻与政策条目只是原文入口：内容归发布机构所有，本应用不转载、不改写，
+        也来不及逐条核实。列表按源的返回顺序展示，点开后以原文页面为准。</p>
+    </section>
+  </div>
+
+  <!-- 全屏子视图：城市空气排名。z-index 高于底部菜单，自带返回按钮 -->
+  <section class="sheet" id="rankView" hidden>
+    <header class="sheet-head">
+      <button class="sheet-back" id="rankBack" aria-label="返回">‹</button>
+      <h2>全国城市空气质量</h2>
+      <!-- 方向不再靠 ↑/↓ 那两个字符说：「最优在前」/「最差在前」本身就说得清，
+           前面配一枚 pack 的双向箭头当"这是个排序开关"的视觉提示。文字由 rank.js 现写。 -->
+      <button class="sheet-act" id="rankSort" hidden><span class="ic" data-icon="sort"></span><span id="rankSortTxt">最优在前</span></button>
+    </header>
+    <!-- 这一行的文字由 js/rank.js 的 noteText() 现推（口径那一档选到美标时要改口），
+         markup 里故意留空 —— 回归有一条断言盯着它不许写死。 -->
+    <p class="sheet-note" id="rankNote"></p>
+    <!-- 滚动只发生在这一层：标题、返回、排序与那句口径说明都不在滚动区里，
+         滚到榜的深处也永远有出口（2026-10-02 实测：滚到第 68 名时屏上没有任何可点的地方）。
+         这一层与设置面板的 .modal-body 共用 .sheet-body 那一条规则，见 styles.css。 -->
+    <div class="sheet-body" id="rankScroll">
+      <ol class="rank-list" id="rankMine"></ol>
+      <ol class="rank-list" id="rankList"></ol>
+    </div>
+  </section>
+
+  <!-- 底部菜单：body[data-tab] 决定哪一板块可见，切换在 js/tabs.js -->
+  <nav class="tabbar" id="tabbar">
+    <button class="tab" type="button" data-tab="weather" aria-selected="true"><span class="tab-i" data-icon="cloud"></span>天气</button>
+    <button class="tab" type="button" data-tab="fortune" aria-selected="false"><span class="tab-i" data-icon="crystal-ball"></span>运势</button>
+    <button class="tab" type="button" data-tab="news" aria-selected="false"><span class="tab-i" data-icon="paper"></span>新闻</button>
+  </nav>
+
+  <!-- 设置弹窗 -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>设置</h2>
+        <button class="close" id="closeSettings" aria-label="关闭">×</button>
+      </div>
+
+      <!-- 标题与下面的「恢复默认 / 保存并应用」都在滚动区**之外**（2026-10-01）：
+           原来整张卡片自己滚，标题和按钮条靠 position:sticky 钉住，于是它们各自成了一条
+           与卡片材质不同的不透明带（卡片是 --surface 的玻璃，那两条刷的是 --card），
+           还会盖过卡片顶部的圆角 —— 用户看到的就是"标题浮在最上面、和面板不是一块"。
+           现在只有 .modal-body 会滚，边界处 overscroll-behavior:contain 拦住，不再带着背后的天气页走。 -->
+      <div class="modal-body" id="modalBody">
+      <label class="field">
+        <span>数据源</span>
+        <select id="providerSel">
+          <option value="open-meteo">Open-Meteo（免密钥，默认）</option>
+          <option value="nmc">中国天气（中央气象台，免密钥）</option>
+          <option value="wttr-in">wttr.in（免密钥·无需注册，3 天）</option>
+          <option value="custom">自定义 API（完全自由）</option>
+        </select>
+      </label>
+
+      <label class="field" id="keyField">
+        <span>API Key</span>
+        <input id="apiKey" type="text" placeholder="粘贴你的 API Key（自定义 API 可留空）" />
+      </label>
+
+      <fieldset class="group">
+        <legend>单位与外观</legend>
+        <div class="row">
+          <label class="field inline">
+            <span>温度单位</span>
+            <select id="unitTemp">
+              <option value="C">摄氏度 °C</option>
+              <option value="F">华氏度 °F</option>
+            </select>
+          </label>
+          <label class="field inline">
+            <span>风速单位</span>
+            <select id="unitWind">
+              <option value="kmh">km/h</option>
+              <option value="ms">m/s</option>
+            </select>
+          </label>
+        </div>
+        <label class="field inline">
+          <span>主题</span>
+          <!-- 选项由 js/settings/appearance.js 用 lib/themes.js 的 THEMES 填充，别在这里写死 -->
+          <select id="themeSel"></select>
+        </label>
+        <label class="field inline">
+          <span>空气质量口径</span>
+          <!-- 同上：选项由 lib/aqi.js 的 AQI_STDS 生成 -->
+          <select id="aqiStdSel"></select>
+        </label>
+      </fieldset>
+
+      <fieldset class="group" id="pluginGroup">
+        <legend>主题插件</legend>
+        <!-- 这一组不放常驻说明：导入与验收那几句话 2026-10-15 收进了下面「软件声明」那一组
+             （lib/disclosures.js 的 themes 条）。这里只留清单本身和那个选文件的入口。 -->
+        <div id="pluginList" class="plugin-list"></div>
+        <label class="field inline">
+          <span>导入主题包</span>
+          <!-- accept 放宽到 .json：Android 的文件选择器对自定义扩展名支持很差，
+               真是不是 JSON 由校验层拒，不靠这里挡 -->
+          <input type="file" id="pluginFile" accept="application/json,.json" />
+        </label>
+      </fieldset>
+
+      <!-- 这里原来是「背景」那一栏（模式下拉 / 九张预设 / 相册选图 / 透出程度滑杆）。
+           2026-10-04 整栏取消：底由主题给（js/lib/themes.js 的 w），透多少也是主题的设计值（同一格的 glass）。 -->
+
+      <!-- 桌面图标：整组只在手机壳里出现（lib/appicon.js 的 iconSupported() 说了算），
+           四枚预览由 ICON_CHOICES 生成，别在这里写死。 -->
+      <fieldset class="group" id="iconGroup" hidden>
+        <legend>桌面图标</legend>
+        <div class="icon-grid" id="iconGrid"></div>
+      </fieldset>
+
+      <fieldset class="group">
+        <legend>行为与自动化</legend>
+        <label class="check">
+          <input type="checkbox" id="autoLocate" />
+          <span>启动时使用定位加载本地天气（需已授权定位权限，或勾选后首次弹窗授权）</span>
+        </label>
+        <!-- 自动刷新：间隔可自定义（数值 + 单位），右边那颗是开关。
+             数值框的 min/max 与单位下拉的三档都不在这里写死 —— 由 settings/behavior.js 从
+             lib/config.js 的 REFRESH_LIMITS / SPAN_UNITS 现填（min/max 还要按当前单位换算），
+             界面上不许出现第二份范围。
+             原来这里是四个预设的下拉（关闭/30 秒/60 秒/5 分钟），2026-10-15 按用户要求改开。 -->
+        <div class="field inline" id="refreshField">
+          <span>自动刷新 / 轮播</span>
+          <input type="number" id="autoRefreshNum" class="refresh-num" step="1"
+                 inputmode="numeric" aria-label="刷新间隔数值" />
+          <select id="autoRefreshUnit" class="refresh-unit" aria-label="刷新间隔单位"></select>
+          <button type="button" id="autoRefreshToggle" class="switch" aria-pressed="false"
+                  title="开启或关闭自动刷新"><span class="sw-ic"></span><span class="sw-tx">关闭</span></button>
+        </div>
+        <p class="hint small" id="refreshHint" hidden></p>
+      </fieldset>
+
+      <fieldset class="group" id="notifyGroup">
+        <legend>通知栏天气</legend>
+        <label class="check">
+          <input type="checkbox" id="notifyOn" />
+          <span>在通知栏常驻一条实时天气</span>
+        </label>
+        <div class="chips" id="notifyFields"></div>
+        <p class="hint small" id="notifyHint"></p>
+      </fieldset>
+
+      <fieldset class="group" id="alertGroup">
+        <legend>气象预警</legend>
+        <label class="check">
+          <input type="checkbox" id="alertOn" />
+          <span>发布新预警时发通知提醒</span>
+        </label>
+        <label class="field inline">
+          <span>提醒门槛</span>
+          <!-- 选项由 js/lib/alerts.js 的 LEVELS 生成，别在这里写死 -->
+          <select id="alertMin"></select>
+        </label>
+        <p class="hint small" id="alertHint"></p>
+      </fieldset>
+
+      <div id="customFields" hidden>
+        <p class="hint">URL 模板变量：<code>{city}</code> <code>{lat}</code> <code>{lon}</code> <code>{key}</code>。
+          字段映射只接受 <b>JSON</b>（不执行任何代码）：值写成 <code>"a.b[0].c"</code> 路径，或
+          <code>{ "path": "...", "mul": 3.6, "add": -273.15, "map": {…}, "default": … }</code>。
+          顶层可写 <code>codes:"wmo"|"owm"</code>（按天气代码补中文描述与图标）、<code>units:{temp:"C"|"K",wind:"kmh"|"ms"}</code>（自动归一到 °C 与 km/h）。
+          对象数组与 Open-Meteo 那种平行数组都支持：路径先按数组元素解析，取不到再回到根对象，命中数组时按行号取值。</p>
+
+        <label class="field">
+          <span>地理编码 URL（可选）</span>
+          <input id="cfGeoUrl" type="text" placeholder="https://.../geo?q={city}&amp;key={key}" />
+        </label>
+        <label class="field">
+          <span>当前天气 URL</span>
+          <input id="cfCurUrl" type="text" placeholder="https://.../weather?lat={lat}&amp;lon={lon}&amp;key={key}" />
+        </label>
+        <label class="field">
+          <span>预报 URL（可选）</span>
+          <input id="cfDayUrl" type="text" placeholder="https://.../daily?lat={lat}&amp;lon={lon}&amp;key={key}" />
+        </label>
+        <label class="field">
+          <span>逐小时 URL（可选）</span>
+          <input id="cfHourUrl" type="text" placeholder="https://.../hourly?lat={lat}&amp;lon={lon}&amp;key={key}" />
+        </label>
+        <label class="field">
+          <span>字段映射 JSON</span>
+          <textarea id="cfMap" rows="14" spellcheck="false"></textarea>
+        </label>
+      </div>
+
+      <!-- 软件声明：一级是这一组，二级是里面每一条 <details>。文字全部由 js/lib/disclosures.js
+           按「面板里当前选中的那一家 + 当前空气质量口径」现推，这里一个字都不写死。
+           放在整面板最下面（2026-10-01 用户要求）：它是「要查才查」的东西，不该压在改单位、换背景
+           这些天天要碰的项前面。 -->
+      <fieldset class="group" id="discGroup">
+        <legend>软件声明</legend>
+        <p class="hint small" id="discLead"></p>
+        <div id="discList"></div>
+      </fieldset>
+      </div><!-- /滚动区 .modal-body -->
+
+      <div class="modal-actions">
+        <button class="btn-ghost" id="resetBtn">恢复默认</button>
+        <button class="btn-primary" id="saveBtn">保存并应用</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

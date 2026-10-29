@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API < 26 的整图版（没有蒙版，桌面直接摆这张方图）。上面 anydpi-v26 那份在 26+ 会盖掉它。
+     实底 #2B7FFF 而不是渐变：矢量渐变要 API 24+ 才认，而 minSdk 是 23（Capacitor 那份示例前景
+     正是因此住在 drawable-v24 里）。图形按 108/64 铺满，与 weather-app/icon.svg 同形。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#2B7FFF"
+        android:pathData="M23.625,0 h60.75 a23.625,23.625 0 0 1 23.625,23.625 v60.75 a23.625,23.625 0 0 1 -23.625,23.625 h-60.75 a23.625,23.625 0 0 1 -23.625,-23.625 v-60.75 a23.625,23.625 0 0 1 23.625,-23.625 z" />
+    <group android:scaleX="1.6875" android:scaleY="1.6875">
+        <path
+            android:fillColor="#FFD54A"
+            android:pathData="M15,24 a9,9 0 1,1 18,0 a9,9 0 1,1 -18,0" />
+        <path
+            android:strokeColor="#FFD54A"
+            android:strokeWidth="2.4"
+            android:strokeLineCap="round"
+            android:pathData="M24,8 L24,12 M24,36 L24,40 M8,24 L12,24 M36,24 L40,24 M12,12 L15,15 M33,33 L36,36" />
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M27,40 a11,11 0 1,1 22,0 a11,11 0 1,1 -22,0 M19,44 a9,9 0 1,1 18,0 a9,9 0 1,1 -18,0 M38,44 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0 M26.5,46 h21 a4.5,4.5 0 0 1 0,9 h-21 a4.5,4.5 0 0 1 0,-9 z" />
+    </group>
+</vector>

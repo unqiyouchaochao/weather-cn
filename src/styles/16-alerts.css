@@ -1,0 +1,31 @@
+/* ---------- 气象预警 ----------
+ * 色条与圆点是这一块唯一的用色处（--al 由 js/lib/alerts.js 按级别给，四个值都对着 9 套主题的
+ * --card 量过 ≥3:1）。文字一律 --ink / --muted：那四个色当图形件够，当正文都不够 4.5，
+ * 尤其黄色 —— 拿它当字色在最浅的主题上只有 3.3，等于把最该看清的一行做糊。
+ * 展开用原生 <details>，不加一行 JS，也不和 View Transitions 抢。 */
+.alert-list { display: flex; flex-direction: column; gap: 8px; }
+.alert-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--al, var(--line));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.alert-item > summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 12px; cursor: pointer; list-style: none;
+}
+.alert-item > summary::-webkit-details-marker { display: none; }
+.al-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: var(--al, var(--muted)); }
+.al-name { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.al-area { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.al-time { flex: 0 0 auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.alert-item[open] > summary { border-bottom: 1px solid var(--line); }
+.al-text { margin: 0; padding: 10px 12px 12px; font-size: 13px; line-height: 1.75; color: var(--ink); }
+.al-guide {
+  margin: 0; padding: 10px 12px 12px; font-size: 13px; line-height: 1.75; color: var(--ink);
+  background: var(--hint-bg); border-top: 1px solid var(--hint-line);
+}
+.al-guide b { display: block; font-size: 12px; color: var(--ink); margin-bottom: 3px; font-weight: 600; }
+

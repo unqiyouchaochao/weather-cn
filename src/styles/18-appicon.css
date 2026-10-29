@@ -1,0 +1,12 @@
+/* 桌面图标预设（设置里那一组，只在壳里出现）。
+ * 标签用 --muted、底用 --field-bg、描边用 --line —— 全是这一层浮层里已经在用的配对，不新增配色组合。
+ * 每枚预览方块里的图与色由 js/lib/appicon.js 的 ICON_CHOICES 直接写进 svg（要与 android 那几份
+ * vector 一致），所以这里只管形状，不管画什么。 */
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 10px; margin: 10px 0 4px; }
+.ic-thumb { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 9px 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--field-bg); cursor: pointer; }
+.ic-thumb svg { border-radius: 12px; display: block; }
+.ic-thumb span { font-size: 11px; color: var(--muted); }
+.ic-thumb.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+/* 相册选图那一行的 .bg-photo/.file-btn 也随背景模块删掉了 */
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+

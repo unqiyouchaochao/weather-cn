@@ -1,0 +1,40 @@
+/* falsify 的「改哪个文件」登记表。
+ * 单独一个文件是因为变异表按族拆成了几份（tools/falsify/mut/*.mjs），它们都要引用同一份路径表；
+ * 路径表只在这一处写，新增一个被盯的文件就在这里加一个键。
+ * 键名短的有意识：表里条条都写 `file: F.idx`，读起来像句子。值一律是**仓库根的相对路径**
+ * （falsify 与 anchor-audit 都拿它直接拼 ROOT）。 */
+export const F = {
+  idx: 'weather-app/js/providers/index.js',
+  china: 'weather-app/js/providers/chinaWeather.js',
+  stations: 'weather-app/js/lib/nmc-stations.js',
+  geo: 'weather-app/js/lib/geo.js',
+  ui: 'weather-app/js/ui.js',
+  uiTheme: 'weather-app/js/ui/theme.js',
+  uiStatus: 'weather-app/js/ui/status.js',
+  uiHome: 'weather-app/js/ui/home.js',
+  uiHours: 'weather-app/js/ui/hours.js',
+  uiAlerts: 'weather-app/js/ui/alerts.js',
+  cfg: 'weather-app/js/lib/config.js',
+  alerts: 'weather-app/js/lib/alerts.js',
+  disc: 'weather-app/js/lib/disclosures.js',
+  main: 'weather-app/js/main.js',
+  locate: 'weather-app/js/locate.js',
+  refresh: 'weather-app/js/refresh.js',
+  setIdx: 'weather-app/js/settings/index.js',
+  setDisc: 'weather-app/js/settings/disclosures.js',
+  css: 'weather-app/styles.css',
+  query: 'weather-app/js/query.js',
+  sug: 'weather-app/js/suggest.js',
+  fav: 'weather-app/js/favorite.js',
+  html: 'weather-app/index.html',
+  hw: 'weather-app/js/lib/hwAqi.js',
+  om: 'weather-app/js/providers/openMeteo.js',
+  aq: 'weather-app/js/lib/aqi.js',
+  wttr: 'weather-app/js/providers/wttrIn.js',
+  hr: 'weather-app/js/lib/hourly.js',
+  svc: 'android/app/src/main/java/com/weatherstudio/app/WeatherKeepAliveService.java',
+  sheet: 'weather-app/js/lib/sheet.js',
+  rank: 'weather-app/js/ui/rank.js',
+  themes: 'weather-app/js/lib/themes.js',
+  wthr: 'weather-app/js/lib/weather.js',
+};

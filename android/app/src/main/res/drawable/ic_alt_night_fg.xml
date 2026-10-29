@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「夜航」前景：月牙 + 一颗四角星。月牙是两段弧围出来的：外弧 r=26 走左边，
+     内弧 r=30（大半径、小弓）从底下绕回来，两者之差就是那道弯。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#E8E6EE"
+        android:pathData="M60,28 A26,26 0 1 0 60,80 A30,30 0 0 1 60,28 Z" />
+    <path
+        android:fillColor="#F5C542"
+        android:pathData="M76,32 L78,38 L84,40 L78,42 L76,48 L74,42 L68,40 L74,38 Z" />
+</vector>

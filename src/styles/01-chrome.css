@@ -1,0 +1,154 @@
+.top-actions { display: flex; align-items: center; gap: 8px; }
+/* 原地静默刷新的可见反馈：右上角小转圈。只在「同一目标重新取数」时亮 —— 换城市走整页骨架屏，
+ * 那种情况不需要它。描边用 --accent（卡片上的强调色），不写死颜色。 */
+.sync {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--tint); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* 值真的变了才闪一下：不动文字颜色（改字色就得重过量 9 套主题对比度），
+ * 只在背后铺一层随主题的 --tint 底再淡出。 */
+.bump { animation: bump 1.1s ease-out; border-radius: 6px; }
+@keyframes bump { from { background: var(--tint); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .sync { animation-duration: 2.4s; } .bump { animation: none; } }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 40px; height: 40px; display: inline-flex; color: var(--sun); }
+.brand-icon svg { width: 100%; height: 100%; }
+.brand h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.brand .sub { margin: 0; font-size: 13px; color: var(--muted); }
+
+.gear, .icon-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.gear:hover, .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 界面符号的统一盒子。markup 里写 <span class="ic" data-icon="…">，启动时 hydrateIcons
+ * 把 SVG 塞进这个盒子，尺寸由这一条说了算 —— 不在 JS 里写死，否则每套主题的按钮大小
+ * 都不一样，改一处要改四处。颜色不写：SVG 是 fill="currentColor"，跟着按钮的字色走。 */
+.ic { width: 19px; height: 19px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.ic svg, .ic .ic-ink svg { width: 100%; height: 100%; display: block; }
+.star .ic { width: 18px; height: 18px; }
+.tool-btn .ic, .sheet-act .ic { width: 14px; height: 14px; }
+.tool-btn, .sheet-act { display: inline-flex; align-items: center; gap: 5px; }
+
+.search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.search input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.search input:focus { outline: none; border-color: var(--accent); }
+.loc-btn {
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  /* 必须显式给 color：这颗钮里原先是 📍 emoji（自带颜色，不继承），换成 fill="currentColor"
+   * 的矢量之后没人给色，按钮就退回 UA 默认的 buttontext（黑）—— 五套深色主题下量到 1.07~1.49，
+   * 纯黑主题里那颗针在屏上根本找不到。与 .gear/.icon-btn 同一路：跟着 --muted 走。 */
+  color: var(--muted);
+  border-radius: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.loc-btn:hover { border-color: var(--accent); color: var(--accent); }
+.search button#searchBtn {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 12px;
+  background: var(--brand);
+  color: var(--hero-ink);
+  font-size: 15px;
+  cursor: pointer;
+  transition: .15s;
+  /* 华为 LNA-AL00 上「查询」两个字会折成一行一个：这一颗是 flex 子项，默认 `flex-shrink:1`
+   * 且按钮文字允许在任意位置断行，于是输入框先抢走宽度、它被压到两个字竖排。
+   * 337~800px 逐档扫过，整页只有这一处会折 —— 是折行不是溢出（横向溢出为零）。
+   * 两条都要写：`flex:0 0 auto` 让它不参与收缩，`nowrap` 兜住系统把字号调大那一档。 */
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.search button#searchBtn:hover { background: var(--brand-2); }
+
+.fav-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  min-height: 0;
+}
+.fav-bar:empty { display: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip .x {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.chip .x:hover { color: var(--err-ink); }
+
+.status {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.status.err { background: var(--err-bg); color: var(--err-ink); border: 1px solid var(--err-line); }
+.status.ok { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-line); }
+
+/* 首页「什么都没查到」那一态的卡。配色整套复用上面 .status.ok 的三个变量 ——
+ * 那是十套主题都量过 AA 的配对，这里不新开颜色组合。 */
+.empty {
+  padding: 22px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  text-align: center;
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+  border: 1px solid var(--ok-line);
+  animation: fade .2s ease;
+}
+.empty-ic { display: inline-block; width: 30px; height: 30px; }
+.empty-ic svg { width: 100%; height: 100%; }
+.empty-msg { margin: 8px 0 12px; font-size: 14px; line-height: 1.55; }
+.empty .retry { margin-left: 0; padding: 5px 18px; font-size: 14px; }
+
+.result { animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+

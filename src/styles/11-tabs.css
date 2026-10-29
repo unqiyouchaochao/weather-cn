@@ -1,0 +1,61 @@
+/* ===== 底部菜单与测算板块 =====
+ * 配色一律走变量；选中态复用「--brand 底 + --hero-ink 字」这对已通过 9 套主题对比度实测的组合。
+ * 可见性由 body[data-tab] 控制，切 tab 的逻辑在 js/tabs.js 的 setTab()。
+ */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field-bg);
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  /* 分属性写：transform 若跟着 .16s 走，按下反馈会显得黏手 */
+  transition: color .16s, border-color .16s, background-color .16s, transform .09s;
+}
+.tab:hover { color: var(--accent); border-color: var(--accent); }
+.tab[aria-selected="true"] {
+  /* 选中态不整块铺品牌色了：底部这一条横贯屏底，铺满就是一块大色板压在所有卡片之下，
+     与主卡同一个毛病。改成「同底 + 主色描边 + 主色字 + 底下一条主色杠」，
+     跟主卡说的是同一套话。字重仍然加，色觉障碍和灰阶打印下也分得清哪一项是当前的。 */
+  background: var(--field-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.tab-i { width: 17px; height: 17px; display: inline-flex; }
+.tab-i svg { width: 100%; height: 100%; display: block; }
+
+/* 板块可见性。三个板块各有自己的容器（天气那页的元素原先散在 .app 下、要靠十条选择器点名，
+ * 2026-10-10 收进 #weatherView），所以这里三条就够。
+ * 顺带补上一个一直漏网的：#emptyState 以前不在那份清单里，查询失败后再切到运势/新闻，
+ * 那张「什么都没查到」的卡会跟着一起过去。整块藏就不会再有点名点漏这种事。 */
+body:not([data-tab="weather"]) #weatherView,
+body:not([data-tab="fortune"]) #fortuneView,
+body:not([data-tab="news"]) #newsView { display: none; }
+
+.fz-day { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; color: var(--muted); margin: 2px 0 12px; }
+.fz-day b { color: var(--ink); font-size: 16px; }
+.fz-sub { color: var(--muted); font-size: 12px; }
+.fz-sub.small { font-size: 11px; margin: 10px 0 0; }
+.fz-form { display: flex; flex-wrap: wrap; gap: 0 12px; }
+.fz-tools { display: flex; gap: 8px; margin: 2px 0 6px; }
+.fz-tools .fz-reset { margin-left: auto; }   /* 重置靠最右，与两个导出按钮分开，免得误点 */

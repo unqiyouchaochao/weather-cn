@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 仅 debug 构建参与合并：live-reload 时 WebView 要从电脑以 http:// 明文加载页面，
+     而 targetSdk 28+ 默认禁止明文流量（合并后的清单里没有 usesCleartextTraffic，实测确认）。
+     走 adb reverse + localhost 本来就有回环豁免，但为了也能用局域网 IP 直连，这里放开。
+     release 构建不会包含本文件，线上包仍是禁止明文的。 -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application android:usesCleartextTraffic="true" />
+</manifest>

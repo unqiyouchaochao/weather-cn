@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 三套桌面预设图标的底色。只用于 <adaptive-icon> 的 background 层，
+     界面上一枚枚预览的颜色由 js/lib/appicon.js 里的同一份十六进制值给出（两边要对得上）。 -->
+<resources>
+    <color name="ic_alt_sun_background">#2E6FB7</color>
+    <color name="ic_alt_night_background">#0B0B0D</color>
+    <color name="ic_alt_bloom_background">#F2E6EE</color>
+</resources>

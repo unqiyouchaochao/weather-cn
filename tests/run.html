@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>天气助手 · 回归检查</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; margin: 18px; color: #1f2a37; }
+  h1 { font-size: 17px; margin: 0 0 4px; }
+  p.hint { color: #6b7785; margin: 0 0 14px; }
+  table { border-collapse: collapse; width: 100%; max-width: 900px; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+  th { font-size: 12px; color: #6b7785; }
+  td.name { font-weight: 600; }
+  td.detail { font-family: ui-monospace, Consolas, monospace; font-size: 12px; white-space: pre-wrap; }
+  .pass { color: #15803d; } .fail { color: #b91c1c; }
+  span.tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; background: #f1f5f9; }
+  iframe { width: 390px; height: 620px; border: 1px solid #e2e8f0; border-radius: 10px; }
+  .wrap { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<h1>天气助手 · 回归检查</h1>
+<p class="hint">被测页面是同源的 <code>/weather-app/index.html</code>（iframe 里那份），断言脚本注入到它自己的 realm 里跑，
+所以量的是真 DOM、真模块、真 computed style，不是模拟。<span id="primed">准备中…</span></p>
+<div class="wrap">
+  <table>
+    <thead><tr><th>结果</th><th>检查项</th><th>实测</th></tr></thead>
+    <tbody id="out"><tr><td colspan="3">跑动中…</td></tr></tbody>
+  </table>
+  <div>
+    <iframe id="app" title="被测页面"></iframe>
+    <p class="hint">被测页面（src 由脚本在清完 SW 后才挂上，别在标签里写死）</p>
+  </div>
+</div>
+<script>
+  const out = document.getElementById('out');
+  const frame = document.getElementById('app');
+  function show(list) {
+    out.innerHTML = list.map(c =>
+      '<tr><td><span class="tag ' + (c.ok ? 'pass' : 'fail') + '">' + (c.ok ? 'PASS' : 'FAIL') + '</span></td>'
+      + '<td class="name">' + c.name + '</td><td class="detail">' + c.detail + '</td></tr>').join('');
+  }
+  frame.addEventListener('load', () => {
+    const s = frame.contentDocument.createElement('script');
+    s.type = 'module';
+    s.src = '/tests/app.checks.mjs?v=' + Date.now();   // 断言脚本自己也不能被 HTTP 缓存端旧
+    s.onerror = () => { out.innerHTML = '<tr><td colspan="3">断言脚本没加载上</td></tr>'; };
+    frame.contentDocument.head.appendChild(s);
+    let deadline = Date.now() + 420000;   // 预算必须用墙上时钟算：标签在后台时 setInterval 会被浏览器夹紧
+                                          // （实测 300ms 的 sleep 实跑 1009ms），按「跳了多少次」定超时会跟着节流程度漂
+    const poll = setInterval(() => {
+      const r = frame.contentWindow.__CHECKS__;
+      if (r && r.length) { show(r); clearInterval(poll); }
+      else if (Date.now() > deadline) { clearInterval(poll); out.innerHTML = '<tr><td colspan="3">超时：断言脚本没返回结果（进度停在 ' + (frame.contentWindow.__P || '(第一条都没出)') + '）</td></tr>'; }
+    }, 500);
+  });
+  /* 被测页必须拿到「刚改的那份字节」，而这里有两层会端旧货：
+   *   ① 应用自己注册的 cache-first service worker；
+   *   ② python http.server 不发 Cache-Control，浏览器按启发式复用，子资源（main.js 等）
+   *      就算绕过了 SW 也还是旧的 —— 只给 iframe 的 src 加 query 只洗得掉 index.html 一层。
+   * 所以：注销 SW → 清 caches → 按 sw.js 里的 SHELL 清单逐个 cache:'reload' 预热 → 再挂 iframe。
+   * 但 SW 那几个 API 不是每个通道都肯答：头无头 Edge（EdgeCore 精简版）里 getRegistrations() 永不 resolve，
+   * 整段 await 下去就是「iframe 永远没 src」，看板上和被测页白屏一模一样。所以每步单独限时，
+   * 超时就跳过继续往下走。 */
+  const withTimeout = (p, ms) => Promise.race([Promise.resolve(p).catch(() => null), new Promise(r => setTimeout(r, ms))]);
+  const src = '/weather-app/index.html?fresh=' + Date.now();
+  (async () => {
+    const notes = [];
+    try {
+      const rs = await withTimeout(navigator.serviceWorker && navigator.serviceWorker.getRegistrations(), 2000) || [];
+      await Promise.all(rs.map(r => withTimeout(r.unregister(), 2000)));
+      const ks = await withTimeout(caches.keys(), 2000) || [];
+      await Promise.all(ks.map(k => withTimeout(caches.delete(k), 2000)));
+      if (!navigator.serviceWorker) notes.push('该通道没有 SW API，跳过注销');
+      else if (!rs.length && !ks.length) notes.push('本来就没有 SW 和缓存');
+      const swTxt = await withTimeout(fetch('/weather-app/sw.js', { cache: 'reload' }).then(r => r.text()), 4000);
+      const shell = (swTxt ? swTxt.match(/'\.\/[^']*'/g) : []) || [];
+      if (!shell.length) notes.push('sw.js 没读到，跳过预热');
+      await Promise.all(shell.map(s => withTimeout(fetch('/weather-app/' + s.slice(3, -1), { cache: 'reload' }), 4000)));
+      document.getElementById('primed').textContent =
+        '已强制回源 ' + (shell.length + 1) + ' 个文件（SW 已注销、缓存已清）' + (notes.length ? ' · ' + notes.join(' · ') : '');
+    } catch (e) {
+      document.getElementById('primed').textContent = '预热失败：' + e;
+    }
+    frame.src = src;
+  })();
+</script>
+</body>
+</html>

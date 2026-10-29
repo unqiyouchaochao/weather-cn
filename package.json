@@ -1,0 +1,27 @@
+{
+  "name": "weather-studio",
+  "version": "1.0",
+  "private": true,
+  "description": "天气助手 —— 纯静态 PWA + Capacitor Android 壳",
+  "scripts": {
+    "serve": "node tools/serve.mjs weather-app 8150",
+    "serve:lan": "node tools/serve.mjs weather-app 8150 0.0.0.0",
+    "serve:checks": "node tools/serve.mjs . 8169",
+    "dev": "cap run android --live-reload --host localhost --port 8150 --forwardPorts 8150:8150",
+    "dev:wifi": "cap run android --live-reload --port 8150",
+    "sync": "cap sync android",
+    "styles": "node tools/gen-styles.mjs",
+    "shell": "node tools/gen-shell.mjs",
+    "shell:check": "node tools/shell-check.mjs",
+    "apk": "node tools/gen-styles.mjs && node tools/gen-shell.mjs && cap sync android && cd android && gradlew.bat assembleDebug"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.0.0"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/app": "^7.1.2",
+    "@capacitor/core": "^7.0.0",
+    "@capacitor/geolocation": "^7.0.0"
+  }
+}

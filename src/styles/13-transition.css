@@ -1,0 +1,44 @@
+/* ---------- 板块切换特效 ----------
+ * 只动 opacity / transform 这两个合成属性：它们交给合成器，主线程一帧都不占。
+ * 方向由 js/tabs.js 写成 body 上的一个类名；顶栏与底部菜单栏都不在 .view 里，切换时天然原地不动
+ * —— 底部导航跟着一起滑是廉价感的最大来源。
+ * 容器每次从 display:none 回到在场时浏览器会自己重放它身上的 animation，所以不需要
+ * 「摘类名 → 强制重排 → 挂回去」那套重发把戏；要不要动也轮不到 JS 问，末尾那条 media query 一挡就没了。
+ *
+ * 这里原本走的是原生 View Transitions（old/new 两张快照同时动，才是真正的「推入」）。2026-10-11 在
+ * 华为 LNA-AL00 上同一页对拍：带装饰的那套主题下，纯 CSS 首帧 16~57ms，把旧那套注回去、同一次点击外面
+ * 再套一次整页快照是 20~73ms —— **分不出高下**。更早一轮在「装进壳里的那一份」上量到 73~107 对 20~51，
+ * 两轮只差在页面来源（壳里的 assets 对 开发机现 Serving），还没归因清楚，所以这里不敢写成结论。
+ * 每次都复现的是另一件事：切**进天气**比切出去贵 2~3 倍（首帧 41~57 对 16~32）。贵的不是动画，
+ * 是那一页从 display:none 回来要重建布局、重画整叠 backdrop-filter。动效这一层已经不是瓶颈了。 */
+@keyframes view-in-fwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+@keyframes view-in-back { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+body.sw-fwd .view { animation: view-in-fwd .26s cubic-bezier(.32, .72, .24, 1) both; }
+body.sw-back .view { animation: view-in-back .26s cubic-bezier(.32, .72, .24, 1) both; }
+/* 进场是从右往左推（反向是左往右），transformed 的盒子要计入文档的溢出区，那 22px 会把
+ * scrollWidth 撑宽、页面能横向抖出一小截。用 clip 不用 hidden：hidden 会把根元素变成滚动容器
+ * （sticky、滚动恢复都跟着变），clip 只裁不滚，与 visible 搭着也不改变另一轴。
+ * 老 WebView 不认 clip 时这条直接失效，最坏就是回到那 22px 的抖动，不会更糟。 */
+html { overflow-x: clip; }
+.tab:active { transform: scale(.985); }
+
+/* 浮层（排名 .sheet、设置 .modal）的**进场**也归这一片管，与板块切换同一套话：
+ * 面板从 hidden 回到在场时浏览器自动重放它身上的 animation，所以这一头不需要 JS。
+ * 退场那一头留在 js/lib/sheet.js 里用 WAAPI 播——「必须等动画跑完才能 hidden」这件事只有 JS 知道。
+ * 两边的数值是同一对：sheet.js 的 OUT 就是 overlay-in 的反向，改一处必须同时改另一处，
+ * 否则进出场各走各的曲线，看着就像两个面板。设置弹窗以前只有退场没有进场，一开就是硬切。
+ *
+ * **末尾不许写 `both`/`forwards`。** 这一条踩过一次整片失效：`to` 那帧是 `transform: none`，
+ * 而 fill 会把这个「恒等矩阵」永远钉在元素上 —— 非 none 的 transform 就是一个 backdrop root，
+ * 把里面每一层 backdrop-filter 的取样范围裁成这个盒子自己，于是磨砂只剩半透，底下那页的字原样透上来。
+ * 2026-10-19 真机量的：设置面板开着时里面十几层磨砂一起没生效，computed 读数全都正常，只有像素不认。
+ * 摘掉 fill 之后终态就是元素本来那帧（opacity 1 / transform none），视觉上一个像素都没变。
+ * 上面 `.view` 那两条还留着 `both`：它们挂在 body 的类名上，类名一摘效果就整个撤走，
+ * 量过 computed transform 确实是 none —— 但那是「靠别人摘类名」保的，面板这一头没人摘。 */
+@keyframes overlay-in { from { opacity: 0; transform: translateY(9px) scale(.99); } to { opacity: 1; transform: none; } }
+.sheet, .modal { animation: overlay-in .22s cubic-bezier(.32, .72, .24, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  body.sw-fwd .view, body.sw-back .view, .sheet, .modal { animation: none; }
+  .tab, .tab:active { transition: none; transform: none; }
+}

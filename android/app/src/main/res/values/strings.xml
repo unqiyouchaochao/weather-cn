@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">天气助手</string>
+    <string name="title_activity_main">天气助手</string>
+    <string name="package_name">com.weatherstudio.app</string>
+    <string name="custom_url_scheme">com.weatherstudio.app</string>
+</resources>

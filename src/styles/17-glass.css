@@ -1,0 +1,76 @@
+/* ---------- 卡面玻璃（值在 js/lib/themes.js 的 glass 那一格） ----------
+ * 2026-10-04 之前这一块是「自定义背景」的配套：只有选了预设图或相册图（body[data-bg] 不是 auto）
+ * 才启用玻璃，随天气变的底是实底卡。背景模块取消之后，底只剩主题自己的天气渐变，
+ * 于是玻璃不再有开关这一层 —— 恒开，除非下面那两条否决生效。
+ * 三个量由主题一起下发（都在 applyTheme 里写，别在别处再算一遍）：
+ *   --glass-a    卡面不透明度 α
+ *   --glass-mix  次要文字 --muted 朝 --ink 提档的比例
+ *   --glass-blur 卡背景的模糊半径
+ * 为什么必须同时提 --muted：卡面半透之后底是复合色。2026-09-23 那轮 216 个采样（9 套主题 × 8 预设 × 3 色标）
+ * 实测 α=88% 时 muted 最低只剩 3.47（AA 要 4.5），掺 24% 的 ink 才回到 4.52。
+ * 当时还证出「对任意照片 α 不得低于 76%」—— 照片入口取消之后那条下限失去了对象，
+ * 但方法没作废：现在是对**每套主题自己的三族底**（渐变端点 / 子面板 / 压在 --veil 上的弹窗）逐个重测，
+ * 每套一套数，见 js/lib/themes.js 的 glass 那一格与 S5 那一张表。
+ * 提档只作用于 --muted：--pop / --accent 压不住的时候只能改色，别指望这里再加 mix。 */
+body { --surface: var(--card); --muted: var(--muted-base); }
+/* color-mix 要 Chrome 111+。不支持的老 WebView 整块不生效，卡面退回实底样子，
+ * 也就是「不能变透」而不是「字看不清」—— 所以这里必须包 @supports，不能裸写。 */
+@supports (background: color-mix(in srgb, red 50%, transparent)) {
+  body {
+    --surface: color-mix(in srgb, var(--card) var(--glass-a, 100%), transparent);
+    --muted: color-mix(in srgb, var(--muted-base) calc(100% - var(--glass-mix, 0%)), var(--ink));
+  }
+}
+@supports (backdrop-filter: blur(2px)) {
+  /* 半透之后要靠模糊把底的细节抹平。
+   * 这份名单与上面用 var(--surface) 的那批卡面一一对应，改卡面要同时改这里
+   * （tests/app.checks.mjs 里有一条断言专门盯这两份名单不许各自漂移）。
+   * 走 --glass-fx 而不是把声明写死：这样「某一块整片不该糊」是改一个变量，
+   * 不是去名单里挑挑拣拣 —— .sheet 就是这么退出玻璃的，见下面那条。
+   * 2026-10-18 退出 .hr 一族：一屏 24 格小时砖，而且这一条横滚每滚一帧都要给每格重取一次背景快照，
+   * 是这台机上最大的一笔常数开销 —— 少一层磨砂看不出来，少 24 次每帧快照看得出来。退出名单必须
+   * 连 --surface 一起换掉：留着半透而不糊，透出来的是生硬的渐变条纹，比实底难看（那条「两份名单
+   * 一一对应」的断言就是防这个的）。同一天试过的 .dt 已经放回名单：它最多 8 块、不横滚，代价只有
+   * 1/4，而它正压在主题立绘的下半身，改实底等于把人盖掉（2026-10-19 真机图里看到的）。 */
+  body :is(
+    .ccard, .current-card, .air-card, .day, .dt, .chip, .gear, .icon-btn, .search input, .loc-btn,
+    .tool-btn, .compare-tools .tool, .suggest, .fz-card, .news-list, .alert-item,
+    .rank-row, .rank-loading, .sheet-note, .tabbar, .modal-card,
+    .sk-card, .forecast .sk-day) {
+    -webkit-backdrop-filter: var(--glass-fx, blur(var(--glass-blur, 0px)) saturate(1.1));
+    backdrop-filter: var(--glass-fx, blur(var(--glass-blur, 0px)) saturate(1.1));
+  }
+}
+/* 系统的「增加对比度」优先级高于主题定的那个 α：整片回到实底、取消玻璃。
+ * 这是 Apple Music 网页版同款写法（@media (prefers-contrast: more){backdrop-filter:none}），
+ * 而且 prefers-contrast 已经是 Baseline（2022-05），不像 prefers-reduced-transparency 那样还没铺开 ——
+ * 所以这里只认前者，别指望后者能覆盖到多数 WebView。
+ * 两条 @supports 写的也是 body，同特异度：这一条必须写在它们后面才盖得住。 */
+@media (prefers-contrast: more) {
+  body {
+    --glass-fx: none;
+    --surface: var(--card);
+    --muted: var(--muted-base);
+  }
+}
+/* 裸文字垫底：这几个块直接悬在背景上，没有卡面可透，所以自己垫一层 —— 用的就是上面那个 --glass-a
+ * （以前它读单独下发的 --bg-chip，两个名字同一个数，改一处忘另一处就成两套透明度）。
+ * 上面那条 --muted 的补偿对这里同样生效（它们用的就是同一个变量）。 */
+body .brand,
+body .fz-day,
+body .fz-form,
+body .fz-disc,
+body .forecast-title,
+body .foot,
+body #coordLine,
+body .news-src,
+body .news-disc {
+  background: var(--card);
+  background: color-mix(in srgb, var(--card) var(--glass-a, 100%), transparent);
+  border-radius: 8px;
+  padding: 4px 9px;
+  width: fit-content;
+  max-width: 100%;
+}
+/* 设置里的预设缩略图（.bg-grid/.bg-thumb）随背景模块一起删了 */
+

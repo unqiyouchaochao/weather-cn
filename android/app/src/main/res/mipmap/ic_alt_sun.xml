@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API < 26 的整图版（没有蒙版，桌面直接摆这张方图）。上面 anydpi-v26 那份在 26+ 会盖掉它。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#2E6FB7" android:pathData="M0,0 h108 v108 h-108 z" />
+    <path android:fillColor="#F5C542" android:pathData="M40,54 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0" />
+    <path android:strokeColor="#F5C542" android:strokeWidth="6" android:strokeLineCap="round"
+        android:pathData="M54,25 L54,32 M54,76 L54,83 M25,54 L32,54 M76,54 L83,54 M38.4,38.4 L33.5,33.5 M69.6,38.4 L74.5,33.5 M38.4,69.6 L33.5,74.5 M69.6,69.6 L74.5,74.5" />
+</vector>

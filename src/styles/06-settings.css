@@ -1,0 +1,57 @@
+/* 设置面板分组（FR14） */
+.group { border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px 14px; margin: 16px 0; }
+.group legend { font-size: 13px; color: var(--muted); padding: 0 6px; }
+.group .row { display: flex; gap: 12px; }
+.group .row .field { flex: 1; }
+.field.inline { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.field.inline > span { margin-bottom: 0; min-width: 64px; }
+.field.inline select { width: auto; flex: 1; }
+.check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink); margin: 8px 0; }
+.check input { margin-top: 3px; }
+/* 通知内容的字段多选：一排带真实复选框的小胶囊。不用 :has() 做「选中变色」——
+ * 老一点的 WebView 不支持时会全都看起来没选，反而不如复选框本身诚实。 */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--ink); background: var(--field-bg); min-height: 30px; }
+.chip input { margin: 0; }
+
+/* ---------- 自动刷新：数值 + 单位 + 右边那颗开关 ----------
+ * 两态的配色一律复用已经过 AA 扫过的配对，不新造第三组没人量过的组合：
+ *  关 = --ink 压 --field-bg（与上面 .chip 同一对）
+ *  开 = --hero-ink 压 --brand（与「保存并应用」那颗主按钮同一对）
+ * 允许换行：411px 那一档「标签 + 数值 + 单位 + 开关」一行装不下，装不下就整颗开关掉到下一行，
+ * 而不是把数值框挤成 20px 或者让这一行横向溢出。 */
+/* 选择器都挂在 #refreshField 上，不是为了好看：`.field input, .field select { width: 100% }`
+ * 是 (0,1,1)，单挂一个类的 .refresh-num 是 (0,1,0) —— 量不到也报错不了，浏览器实测就是
+ * 「数值框被拉满整行、5 这个数字孤零零贴在右边」，第二行只剩单位和开关。 */
+#refreshField { flex-wrap: wrap; }
+#refreshField > span { flex: 1 0 100%; }
+#refreshField .refresh-num { flex: 0 0 auto; width: 76px; text-align: right; }
+#refreshField .refresh-unit { flex: 1 1 90px; width: auto; }
+#refreshField .switch { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 34px;
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  background: var(--field-bg); color: var(--ink); font-size: 12px; }
+#refreshField .switch .sw-ic { display: inline-flex; width: 20px; height: 20px; }
+#refreshField .switch[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--hero-ink); }
+/* 关着时数值与单位两格是 disabled 的（behavior.js 写的），但浏览器不会自己把禁用输入框画灰 ——
+ * 看着能改、点下去没反应，比摆一个灰开关更坏。这里不用 opacity：半透一层压出来的是一对
+ * 从没量过的复合色（而且 AA 断言量不到它）。改成直接取 --muted 这一档已有的次要文字色，
+ * 并把「--muted 压 --field-bg」这一对逐主题纳入那条 AA 断言。 */
+#refreshField :disabled { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
+
+
+/* ---------- 主题插件列表 ---------- */
+.plugin-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 2px; }
+.plugin-list:empty { display: none; }
+.plugin-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--field-bg); }
+.plugin-name { font-size: 13px; color: var(--ink); font-weight: 600; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plugin-meta { flex: 1; min-width: 0; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 删除是这一行里唯一的动作，给它 44px 的触摸高度；用 --warm 是因为它和「重置」同属不可撤销那一类 */
+.plugin-del { flex: 0 0 auto; min-height: 36px; border-color: var(--warm); color: var(--warm); }
+.plugin-err { font-size: 12px; color: var(--err-ink); background: var(--err-bg); border: 1px solid var(--err-line); border-radius: 10px; padding: 8px 10px; margin: 2px 0 8px; }
+.plugin-err ul { margin: 5px 0 0; padding-left: 18px; }
+.plugin-err li { margin: 3px 0; line-height: 1.5; }
+.plugin-list code { font-size: 11px; background: var(--code-bg); border-radius: 4px; padding: 1px 4px; }
+/* 文件选择器：原生那颗按钮在深色主题下会露出系统配色，这里只把它收进字段行的高度，
+   不去重画它 —— 重画就要用 label 转发点击，而 Android WebView 上那条路径不稳。 */
+#pluginFile { flex: 1; min-width: 0; font-size: 12px; color: var(--ink); }
+#pluginFile::file-selector-button { min-height: 34px; margin-right: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--field-bg); color: var(--ink); font-size: 12px; padding: 0 10px; }

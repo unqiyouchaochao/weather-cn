@@ -1,0 +1,1245 @@
+/* ===== 主题系统 =====
+ * 组件一律只认下面这些变量，不写死颜色；换主题就是整块覆盖 body[data-theme] 的变量值。
+ * 天气动态背景也走变量（--w-*）：CSS 里只有六条 body[data-weather] 规则，值由 js/lib/themes.js 逐主题给。
+ * 主题清单与中文名/明暗归属也在 js/lib/themes.js，由它写 body 的 data-theme。
+ * 这里只剩两块（薄荷蓝 / 夜航）：2026-10-06 从 11 套收到 2 套，一份色板一块，别在别处抄第二份。
+ */
+:root {
+  --bg: #eef3f8;
+  --card: #ffffff;
+  --ink: #1f2a37;
+  --muted-base: #636e7b;
+  --line: #e2e8f0;
+  --brand: #2563eb;
+  --brand-2: #1e40af;
+  --accent: #1d4ed8;
+  --shadow: 0 6px 20px rgba(31, 42, 55, 0.08);
+  --radius: 16px;
+  --hero-ink: #fff;
+  --star-on: #ffd54a;                    /* 已收藏的星标色，黑白主题下换成中性白 */
+  --tint: rgba(37, 99, 235, 0.10);      /* 悬停/选中底色 */
+  --tint-2: rgba(37, 99, 235, 0.07);    /* 更淡的一层（当前小时格、对比按钮悬停） */
+  --ring: rgba(37, 99, 235, 0.24);      /* 选中描边光圈 */
+  --pop: #2c6fa8;                        /* 降水相关的小字 */
+  --warm: #e0533f; --cool: #3b82c4;      /* 趋势图高/低温线与降水柱 */
+  --wash: rgba(127, 199, 192, 0.08);     /* 对比卡小图底衬 */
+  --field-bg: #fbfdff;
+  --hint-bg: #f4f8ff;
+  --hint-line: #e1ecfb;
+  --code-bg: #e7eefb;
+  --veil: rgba(20, 28, 38, 0.45);
+  --err-bg: #fdecec; --err-ink: #b42318; --err-line: #f7c5c0;
+  --ok-bg: #e9f7ef;  --ok-ink: #1f7a3d;  --ok-line: #bfe6cd;
+  --osm: #8e44ad;
+  --sun: #f5a623;                        /* 品牌位太阳图标 */
+  /* 这里不再放 --w-*：JS 跑起来之前 body 上没有 data-weather，那六条规则一条都不命中，
+   * 首屏走的是 body { background: var(--bg) }。留着只会变成「某一套主题的那六份值又抄了一遍」，
+   * 改一处忘一处就是两套底色（以前 light 没有自己的主题块，:root 就是它的值，正是这个坑）。
+   * 上面这一份也不是第三套主题：它是「JS 还没跑」那一帧的兜底色，量过它的人只有 applyTheme 之前那半秒。 */
+}
+
+* { box-sizing: border-box; }
+/* 华为 WebView 的默认点击高亮是一块浅蓝底（实测 #ade1f5 附近），而且浮层 hidden→再打开时
+ * 这块高亮会留在原节点上不消失，看着像返回按钮坏了。可交互件一律交给自己的 :active 反馈。 */
+button, a, [role="button"], label.field { -webkit-tap-highlight-color: transparent; }
+/* 全局那条「hidden 就是不上屏」。浮层与卡片全靠 `el.x.hidden = true/false` 开关，
+ * 而只要有任何一条规则给同一个节点写了 `display: flex`（#rankView 就是），UA 那条
+ * `[hidden]{display:none}` 就被顶掉 —— 关掉的浮层照样盖在页面上。必须 !important。
+ * 它原先住在样式表**最末尾**（2026-10-06 前那是花嫁那一片的最后一行），删那一片时
+ * 顺手把它带走了，症状是「首页一打开就被一张空的空气质量榜盖住」。搬到这里：全局基座，
+ * 不属于任何一个板块。 */
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.6;
+  transition: background .45s ease, color .25s ease;
+}
+
+/* 天气动态背景：一条规则一个态，值从主题的 --w-* 拿（那些值在 js/lib/themes.js 里，由 applyTheme 下发）。
+ * data-weather 由 ui.applyBg() 写；没有这个属性时走上面 body { background: var(--bg) } ——
+ * 也就是「JS 还没跑、天气还不知道」的首屏样子（改前也一样：那会儿 body 上还没有 bg-* 类）。
+ * 这一层不加自己的 transition：body 上那条 background .45s 对渐变到底生不生效还没实测，见本轮记录。 */
+body[data-weather="clear"] { background: var(--w-clear); }
+body[data-weather="cloud"] { background: var(--w-cloud); }
+body[data-weather="rain"]  { background: var(--w-rain); }
+body[data-weather="snow"]  { background: var(--w-snow); }
+body[data-weather="storm"] { background: var(--w-storm); }
+body[data-weather="fog"]   { background: var(--w-fog); }
+
+/* ---------- 薄荷蓝（默认浅色）----------
+ * 前身是「薄荷」（清淡绿）。2026-10-06 主题收敛时按用户要求往蓝转：**整套令牌转色相 +28°，
+ * 逐个色保持相对亮度不变**。这么做不是为了省事——对比度只由亮度决定，亮度不动，那几场 AA 扫描
+ * 的读数就跟着不动：同一把尺子（tools/theme-glass-scan.mjs --fix）转前最低 5.02、转后 5.00，
+ * 而且卡的还是同一格（提档后的 muted 压「弹窗底 × storm 最深那一端」）。
+ * 重挑一个个色就没这保证了：每挪一个都要把 13 块底 × 4 种字色重量一遍。
+ * --pop 与 --cool 同值：降水小字和低温线本来就该是同一个"冷"色，多一个色相只是多一处跑调。
+ * --warm / --ok-* / --err-* 是数据语义色（高温线、成功/报错），故意不跟着转：
+ * 那两样要靠色相认，不是靠好看，转成蓝就和低温线分不开。 */
+body[data-theme="mint"] {
+  --bg: #eefafa;
+  --card: #ffffff;
+  --ink: #15323b;
+  --muted-base: #517077;
+  --line: #d6ebec;
+  --brand: #156493;
+  --brand-2: #185884;
+  --accent: #105583;
+  --shadow: 0 6px 20px rgba(23, 80, 107, 0.10);
+  --radius: 14px;
+  --tint: rgba(21, 110, 167, 0.10);
+  --tint-2: rgba(21, 110, 167, 0.06);
+  --ring: rgba(21, 110, 167, 0.26);
+  /* 降水小字与低温线同色，但这一对必须按**文字**挑：浅蓝那一档压白底不到 4.5，
+   * 折过来当 11px 正文用就跌破 AA。见 tests/app.checks.mjs 那条 --pop 断言。 */
+  --pop: #156493;
+  --warm: #ea580c; --cool: #156493;
+  --wash: rgba(64, 173, 234, 0.08);
+  --field-bg: #f6fdfd;
+  --hint-bg: #e8f6f6;
+  --hint-line: #d0e9e8;
+  --code-bg: #dbf0ef;
+  --veil: rgba(10, 38, 50, 0.42);
+  --err-bg: #fdecec; --err-ink: #b42318; --err-line: #f7c5c0;
+  --ok-bg: #e3f5ea;  --ok-ink: #14765a;  --ok-line: #bfe6d8;
+  --sun: #138ad3;
+}
+
+/* 2026-10-10：有一套内置主题从内置撤成了主题插件 —— 它的设计要用受版权保护的角色立绘，
+ * 留在内置就等于每份开源构建都带着它；做成插件之后，素材只存在于自带那个包的安装版本里。
+ * 撤出去时令牌与装饰一起搬进了那个 .themepkg.json，这里不再留残片。
+ * 顺带这也验证了插件通道 —— 内置能做到的事（含 --sky 那种主题私有令牌、
+ * 以及 lace 派生的装饰层）插件也得能做到。 */
+
+/* ---------- 夜航（黑白 · 默认深色） ----------
+ * 整套零彩度：底是纯中性黑，层级只靠明度台阶（#0a 页面 → #12 卡片 → #24 主卡 → #f4 文字）。
+ * 原来是蓝黑（#0f1620 / brand #2f6fd0），夜里看久了整块屏幕泛蓝、白字发虚。
+ * 主卡与按钮仍然是「暗底白字」，只是比页面亮一档 —— 用户明确要过「大块白色元素不要多，
+ * 只有文字是白的」，所以 --brand 不能翻成亮面（试过近白 #ededed 配黑字，一屏三块大白板）。
+ * 趋势图两条线在零彩度下无法靠色相区分，改用明度：--warm 纯白=高温，--cool 中灰=低温。
+ * AQI 徽章与天气图标仍带色：那是「污染等级」「晴/雨/雪」的信息，不是装饰。 */
+body[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --card: #121212;
+  --ink: #f4f4f4;
+  --muted-base: #9b9b9b;
+  --line: #262626;
+  --brand: #242424;
+  --brand-2: #2f2f2f;
+  --accent: #f4f4f4;
+  --hero-ink: #f4f4f4;
+  --star-on: #ffffff;
+  --shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+  --tint: rgba(255, 255, 255, 0.12);
+  --tint-2: rgba(255, 255, 255, 0.07);
+  --ring: rgba(255, 255, 255, 0.34);
+  --pop: #8f8f8f;
+  --warm: #ffffff; --cool: #8f8f8f;
+  --wash: rgba(255, 255, 255, 0.06);
+  --field-bg: #0e0e0e;
+  --hint-bg: #131313;
+  --hint-line: #262626;
+  --code-bg: #1a1a1a;
+  --veil: rgba(0, 0, 0, 0.82);
+  --err-bg: #1b1b1b; --err-ink: #ffffff; --err-line: #6b6b6b;
+  --ok-bg: #101010;  --ok-ink: #cfcfcf;  --ok-line: #333333;
+  --osm: #bdbdbd;
+  --sun: #f4f4f4;
+}
+
+.app {
+  max-width: 720px;
+  margin: 0 auto;
+  /* viewport-fit=cover 后内容会顶到刘海/圆角/手势条，用安全区内边距让开（无安全区时 env() 为 0，与原来一致）。
+     底部另加 44px 是固定菜单栏的高度，否则最后一张卡会被压在栏下 */
+  padding:
+    calc(24px + env(safe-area-inset-top, 0px))
+    calc(18px + env(safe-area-inset-right, 0px))
+    calc(84px + env(safe-area-inset-bottom, 0px))
+    calc(18px + env(safe-area-inset-left, 0px));
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+.top-actions { display: flex; align-items: center; gap: 8px; }
+/* 原地静默刷新的可见反馈：右上角小转圈。只在「同一目标重新取数」时亮 —— 换城市走整页骨架屏，
+ * 那种情况不需要它。描边用 --accent（卡片上的强调色），不写死颜色。 */
+.sync {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid var(--tint); border-top-color: var(--accent);
+  animation: spin .8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+/* 值真的变了才闪一下：不动文字颜色（改字色就得重过量 9 套主题对比度），
+ * 只在背后铺一层随主题的 --tint 底再淡出。 */
+.bump { animation: bump 1.1s ease-out; border-radius: 6px; }
+@keyframes bump { from { background: var(--tint); } to { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .sync { animation-duration: 2.4s; } .bump { animation: none; } }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-icon { width: 40px; height: 40px; display: inline-flex; color: var(--sun); }
+.brand-icon svg { width: 100%; height: 100%; }
+.brand h1 { margin: 0; font-size: 20px; font-weight: 600; }
+.brand .sub { margin: 0; font-size: 13px; color: var(--muted); }
+
+.gear, .icon-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--muted);
+  transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.gear:hover, .icon-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 界面符号的统一盒子。markup 里写 <span class="ic" data-icon="…">，启动时 hydrateIcons
+ * 把 SVG 塞进这个盒子，尺寸由这一条说了算 —— 不在 JS 里写死，否则每套主题的按钮大小
+ * 都不一样，改一处要改四处。颜色不写：SVG 是 fill="currentColor"，跟着按钮的字色走。 */
+.ic { width: 19px; height: 19px; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; }
+.ic svg, .ic .ic-ink svg { width: 100%; height: 100%; display: block; }
+.star .ic { width: 18px; height: 18px; }
+.tool-btn .ic, .sheet-act .ic { width: 14px; height: 14px; }
+.tool-btn, .sheet-act { display: inline-flex; align-items: center; gap: 5px; }
+
+.search {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+  position: relative;
+}
+.search input {
+  flex: 1;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--ink);
+}
+.search input:focus { outline: none; border-color: var(--accent); }
+.loc-btn {
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  /* 必须显式给 color：这颗钮里原先是 📍 emoji（自带颜色，不继承），换成 fill="currentColor"
+   * 的矢量之后没人给色，按钮就退回 UA 默认的 buttontext（黑）—— 五套深色主题下量到 1.07~1.49，
+   * 纯黑主题里那颗针在屏上根本找不到。与 .gear/.icon-btn 同一路：跟着 --muted 走。 */
+  color: var(--muted);
+  border-radius: 12px;
+  font-size: 18px;
+  cursor: pointer;
+  transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.loc-btn:hover { border-color: var(--accent); color: var(--accent); }
+.search button#searchBtn {
+  padding: 12px 22px;
+  border: none;
+  border-radius: 12px;
+  background: var(--brand);
+  color: var(--hero-ink);
+  font-size: 15px;
+  cursor: pointer;
+  transition: .15s;
+  /* 华为 LNA-AL00 上「查询」两个字会折成一行一个：这一颗是 flex 子项，默认 `flex-shrink:1`
+   * 且按钮文字允许在任意位置断行，于是输入框先抢走宽度、它被压到两个字竖排。
+   * 337~800px 逐档扫过，整页只有这一处会折 —— 是折行不是溢出（横向溢出为零）。
+   * 两条都要写：`flex:0 0 auto` 让它不参与收缩，`nowrap` 兜住系统把字号调大那一档。 */
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+.search button#searchBtn:hover { background: var(--brand-2); }
+
+.fav-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+  min-height: 0;
+}
+.fav-bar:empty { display: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 13px;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow);
+  transition: .15s;
+}
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip .x {
+  border: none;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 0 2px;
+}
+.chip .x:hover { color: var(--err-ink); }
+
+.status {
+  padding: 10px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  margin-bottom: 14px;
+}
+.status.err { background: var(--err-bg); color: var(--err-ink); border: 1px solid var(--err-line); }
+.status.ok { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-line); }
+
+/* 首页「什么都没查到」那一态的卡。配色整套复用上面 .status.ok 的三个变量 ——
+ * 那是十套主题都量过 AA 的配对，这里不新开颜色组合。 */
+.empty {
+  padding: 22px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  text-align: center;
+  background: var(--ok-bg);
+  color: var(--ok-ink);
+  border: 1px solid var(--ok-line);
+  animation: fade .2s ease;
+}
+.empty-ic { display: inline-block; width: 30px; height: 30px; }
+.empty-ic svg { width: 100%; height: 100%; }
+.empty-msg { margin: 8px 0 12px; font-size: 14px; line-height: 1.55; }
+.empty .retry { margin-left: 0; padding: 5px 18px; font-size: 14px; }
+
+.result { animation: fade .25s ease; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* 主卡：以前整块铺 --brand→--brand-2 渐变，于是「暖米白 + 朱砂」这套里屏上最大的一块是砖红、
+ * 旁边全是纸白卡 —— 主色被当成了墙，而不是墨。现在主卡与其余卡片同底，主色只出现在三处：
+ * 左边一条竖线、温度大字、收藏点亮的那颗星。小面积（查询按钮、选中项）仍允许铺满主色，
+ * 那叫强调。**新增的配对只有 --accent 压 --surface 这一对**，11 套主题逐套量过（回归里的 AA 扫描）。 */
+.current-card {
+  position: relative;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+.star {
+  position: absolute;
+  top: 14px; right: 14px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  width: 34px; height: 34px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: .15s;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+.star:hover { color: var(--accent); border-color: var(--accent); }
+/* 同一枚五角星，没收藏是描边、收藏了才实心：形状不换，只换填不填。
+ * 描边宽度按 viewBox 的 8 单位坐标系给，不是按屏幕像素。 */
+.star .ic-ink svg path { fill: none; stroke: currentColor; stroke-width: .45; }
+.star.on { color: var(--accent); border-color: var(--accent); }
+.star.on .ic-ink svg path { fill: currentColor; stroke: none; }
+
+/* 右侧留出收藏星的那一角。`.star` 是绝对定位在卡片右上角的（right:14 / 34 见方），
+ * 而这一行的右端只到卡片内容边（离 padding-box 右沿 22px），星的最左在 48px ——
+ * 两者水平重叠 26px、垂直重叠 26px，于是 64px 的天气图标被星压住一角。
+ * 重叠深度只由「22 与 48」这两个常量决定，与视口宽度无关，所以预留量也是常量。
+ * 真机（1220px / dpr 3.25）实测：不预留时图标还会被 flex 从 64 压到 56。 */
+.current-head {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  padding-right: 36px;
+}
+.loc { font-size: 18px; font-weight: 600; }
+.desc { font-size: 14px; opacity: .9; }
+.cur-ic { width: 64px; height: 64px; flex: 0 0 auto; }
+.cur-ic svg { width: 100%; height: 100%; }
+.cur-temp { font-size: 56px; font-weight: 600; margin: 6px 0 2px; color: var(--accent); }
+.cur-range {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 14px;
+}
+.cr-vals { display: flex; gap: 14px; }
+#curHi { font-weight: 600; }
+#curLo { opacity: .9; }
+/* 出处药丸。以前压在品牌渐变上，靠一层 rgba(0,0,0,.26) 暗底才把 11px 白字抬到 AA；
+ * 主卡换成纸底之后那层暗底就没对象了 —— 改成描边 + --muted 压 --field-bg，
+ * 这一对是同卡其他地方（输入框、下拉）已经在用的组合，不是新配的颜色。 */
+.cur-src {
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--field-bg);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  white-space: nowrap;
+  cursor: help;
+}
+.cur-meta { display: flex; gap: 16px; font-size: 14px; opacity: .92; flex-wrap: wrap; }
+
+.forecast-title { font-size: 15px; color: var(--muted); margin: 22px 0 10px; font-weight: 600; }
+
+.forecast {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 10px;
+}
+.day {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.day .d-name { font-size: 13px; color: var(--muted); }
+.day .d-ic { width: 38px; height: 38px; margin: 6px auto; }
+.day .d-ic svg { width: 100%; height: 100%; }
+.day .d-t { font-size: 13px; }
+.day .d-hi { font-weight: 600; }
+.day .d-lo { color: var(--muted); }
+
+.foot { margin-top: 22px; font-size: 12px; color: var(--muted); text-align: center; }
+
+/* Modal */
+.modal {
+  position: fixed; inset: 0;
+  background: var(--veil);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+.modal-card {
+  background: var(--surface);
+  width: 100%; max-width: 520px;
+  border-radius: var(--radius);
+  padding: 20px;
+  max-height: 88vh;
+  /* 卡片自己不再滚（原来是 `overflow:auto` + 标题/按钮条 sticky）：改成 flex 列，
+     只有中间的 .modal-body 滚。sticky 那两条各自刷了一层 --card，与卡片的 --surface
+     玻璃不是同一块材质，钉在顶上就是一条盖过圆角的异色带（2026-10-01 用户报的现象）。 */
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+/* 「一个浮层里只有一个滚动容器」这件事只在这里表达一次：设置面板的 .modal-body 与
+   排名浮层的 .sheet-body 共用同一条（2026-10-02 榜的标题跟着滚走，就是因为那一层漏了）*/
+.modal-body, .sheet-body {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;          /* 滑到顶/到底不带着背后那页一起滚 */
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-body { padding: 0 0 4px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; }
+.modal-head h2 { margin: 0; font-size: 18px; }
+.close { border: none; background: none; font-size: 26px; cursor: pointer; color: var(--muted); line-height: 1; }
+
+.field { display: block; margin: 14px 0; }
+.field > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--field-bg);
+}
+.field textarea { resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+/* 滑杆的 UA margin（Chrome 给 range 的 2px）叠在上面的 width:100% 上，两头各溢出 2px：
+ * 红米真机量到 `.field` 358>354。别的 input 没有这条 UA margin，所以只补 range。 */
+.field input[type=range] { margin: 0; }
+
+.hint { font-size: 12px; color: var(--muted); background: var(--hint-bg); border: 1px solid var(--hint-line); padding: 8px 10px; border-radius: 10px; }
+.hint.small { margin-top: 12px; }
+.hint code { background: var(--code-bg); color: var(--ink); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+
+/* ---------- 软件声明（设置里那一组）----------
+ * 一级是「软件声明」这一组，二级是每条 <details>：收起时每条只占一行，点开才展开正文。
+ * 正文用 --muted（次要文字），这一对由 tests/app.checks.mjs 逐主题量过 AA —— 弹窗没打开时
+ * 扫描看不见这些节点（getClientRects 为空），所以那条断言是专门把弹窗打开再量的。
+ * summary 前的 › 是纯符号节点，不承载文字，不参与对比度判定。 */
+.disc { border-top: 1px solid var(--line); }
+.disc:first-child { border-top: none; }
+.disc summary { cursor: pointer; font-size: 14px; color: var(--ink); padding: 10px 2px; list-style: none; }
+.disc summary::-webkit-details-marker { display: none; }
+.disc summary::before { content: '›'; display: inline-block; margin-right: 8px; color: var(--muted); }
+.disc[open] summary::before { content: '⌄'; margin-right: 6px; }
+.disc-body p { margin: 0 0 8px; font-size: 12.5px; line-height: 1.65; color: var(--muted); padding-left: 18px; }
+.disc-body p:last-child { margin-bottom: 12px; }
+
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 8px; }
+.btn-primary { background: var(--brand); color: var(--hero-ink); border: none; padding: 10px 18px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+.btn-primary:hover { background: var(--brand-2); }
+.btn-ghost { background: none; border: 1px solid var(--line); color: var(--muted); padding: 10px 16px; border-radius: 10px; cursor: pointer; font-size: 14px; }
+
+.compare-btn {
+  display: block;
+  width: 100%;
+  margin: 0 0 14px;
+  padding: 10px;
+  border: 1px dashed var(--accent);
+  background: transparent;
+  color: var(--accent);
+  border-radius: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: .15s;
+}
+.compare-btn:hover { background: var(--tint-2); }
+
+.compare { animation: fade .25s ease; }
+.compare-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.compare-head h2 { margin: 0; font-size: 17px; }
+.compare .close { border: none; background: none; font-size: 26px; cursor: pointer; color: var(--muted); line-height: 1; }
+.compare-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.ccard {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 10px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+  transition: .15s;
+}
+.ccard:hover { border-color: var(--accent); transform: translateY(-2px); }
+.ccard.err { color: var(--err-ink); border-color: var(--err-line); cursor: default; }
+.ccard .c-loc { font-size: 14px; font-weight: 600; color: var(--ink); }
+.ccard .c-ic { width: 46px; height: 46px; margin: 8px auto; }
+.ccard .c-ic svg { width: 100%; height: 100%; }
+.ccard .c-temp { font-size: 30px; font-weight: 600; }
+.ccard .c-desc { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.ccard .c-meta { font-size: 13px; margin-top: 6px; }
+.ccard .c-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.ccard .c-chart { margin: 8px 0 4px; height: 54px; background: var(--wash); border-radius: 10px; padding: 2px 4px; }
+.ccard .c-chart svg { display: block; }
+.ccard .c-retry { font-size: 11px; color: var(--accent); margin-top: 6px; }
+
+.compare-tools { display: flex; align-items: center; gap: 6px; }
+.compare-tools .tool {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .15s;
+}
+.compare-tools .tool:hover { color: var(--accent); border-color: var(--accent); }
+
+#compareHint { margin: 0 0 14px; }
+
+/* 骨架屏（FR17） */
+.loading { animation: fade .2s ease; }
+.sk-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 22px;
+  box-shadow: var(--shadow);
+  margin-bottom: 16px;
+}
+.forecast .sk-day {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  height: 96px;
+  box-shadow: var(--shadow);
+}
+.sk {
+  background: linear-gradient(90deg, var(--line) 25%, rgba(127,127,127,0.18) 37%, var(--line) 63%);
+  background-size: 400% 100%;
+  animation: shimmer 1.2s ease-in-out infinite;
+  border-radius: 8px;
+}
+.sk-loc { width: 50%; height: 18px; margin-bottom: 14px; }
+.sk-temp { width: 60%; height: 52px; }
+.sk-temp.sm { width: 70%; height: 28px; margin: 10px auto; }
+.sk-meta { width: 70%; height: 14px; margin-top: 12px; }
+.sk-line { width: 80%; height: 12px; margin: 8px auto; }
+.sk-day { background: linear-gradient(90deg, var(--line) 25%, rgba(127,127,127,0.18) 37%, var(--line) 63%); background-size: 400% 100%; animation: shimmer 1.2s ease-in-out infinite; }
+@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } }
+
+.status .retry {
+  border: 1px solid currentColor;
+  background: none;
+  color: inherit;
+  border-radius: 8px;
+  padding: 2px 10px;
+  margin-left: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+/* 设置面板分组（FR14） */
+.group { border: 1px solid var(--line); border-radius: 12px; padding: 6px 14px 14px; margin: 16px 0; }
+.group legend { font-size: 13px; color: var(--muted); padding: 0 6px; }
+.group .row { display: flex; gap: 12px; }
+.group .row .field { flex: 1; }
+.field.inline { display: flex; align-items: center; gap: 10px; margin: 12px 0; }
+.field.inline > span { margin-bottom: 0; min-width: 64px; }
+.field.inline select { width: auto; flex: 1; }
+.check { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; color: var(--ink); margin: 8px 0; }
+.check input { margin-top: 3px; }
+/* 通知内容的字段多选：一排带真实复选框的小胶囊。不用 :has() 做「选中变色」——
+ * 老一点的 WebView 不支持时会全都看起来没选，反而不如复选框本身诚实。 */
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--ink); background: var(--field-bg); min-height: 30px; }
+.chip input { margin: 0; }
+
+/* ---------- 自动刷新：数值 + 单位 + 右边那颗开关 ----------
+ * 两态的配色一律复用已经过 AA 扫过的配对，不新造第三组没人量过的组合：
+ *  关 = --ink 压 --field-bg（与上面 .chip 同一对）
+ *  开 = --hero-ink 压 --brand（与「保存并应用」那颗主按钮同一对）
+ * 允许换行：411px 那一档「标签 + 数值 + 单位 + 开关」一行装不下，装不下就整颗开关掉到下一行，
+ * 而不是把数值框挤成 20px 或者让这一行横向溢出。 */
+/* 选择器都挂在 #refreshField 上，不是为了好看：`.field input, .field select { width: 100% }`
+ * 是 (0,1,1)，单挂一个类的 .refresh-num 是 (0,1,0) —— 量不到也报错不了，浏览器实测就是
+ * 「数值框被拉满整行、5 这个数字孤零零贴在右边」，第二行只剩单位和开关。 */
+#refreshField { flex-wrap: wrap; }
+#refreshField > span { flex: 1 0 100%; }
+#refreshField .refresh-num { flex: 0 0 auto; width: 76px; text-align: right; }
+#refreshField .refresh-unit { flex: 1 1 90px; width: auto; }
+#refreshField .switch { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 34px;
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  background: var(--field-bg); color: var(--ink); font-size: 12px; }
+#refreshField .switch .sw-ic { display: inline-flex; width: 20px; height: 20px; }
+#refreshField .switch[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--hero-ink); }
+/* 关着时数值与单位两格是 disabled 的（behavior.js 写的），但浏览器不会自己把禁用输入框画灰 ——
+ * 看着能改、点下去没反应，比摆一个灰开关更坏。这里不用 opacity：半透一层压出来的是一对
+ * 从没量过的复合色（而且 AA 断言量不到它）。改成直接取 --muted 这一档已有的次要文字色，
+ * 并把「--muted 压 --field-bg」这一对逐主题纳入那条 AA 断言。 */
+#refreshField :disabled { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
+
+
+/* ---------- 主题插件列表 ---------- */
+.plugin-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 2px; }
+.plugin-list:empty { display: none; }
+.plugin-row { display: flex; align-items: center; gap: 8px; padding: 7px 9px; border: 1px solid var(--line); border-radius: 10px; background: var(--field-bg); }
+.plugin-name { font-size: 13px; color: var(--ink); font-weight: 600; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.plugin-meta { flex: 1; min-width: 0; font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 删除是这一行里唯一的动作，给它 44px 的触摸高度；用 --warm 是因为它和「重置」同属不可撤销那一类 */
+.plugin-del { flex: 0 0 auto; min-height: 36px; border-color: var(--warm); color: var(--warm); }
+.plugin-err { font-size: 12px; color: var(--err-ink); background: var(--err-bg); border: 1px solid var(--err-line); border-radius: 10px; padding: 8px 10px; margin: 2px 0 8px; }
+.plugin-err ul { margin: 5px 0 0; padding-left: 18px; }
+.plugin-err li { margin: 3px 0; line-height: 1.5; }
+.plugin-list code { font-size: 11px; background: var(--code-bg); border-radius: 4px; padding: 1px 4px; }
+/* 文件选择器：原生那颗按钮在深色主题下会露出系统配色，这里只把它收进字段行的高度，
+   不去重画它 —— 重画就要用 label 转发点击，而 Android WebView 上那条路径不稳。 */
+#pluginFile { flex: 1; min-width: 0; font-size: 12px; color: var(--ink); }
+#pluginFile::file-selector-button { min-height: 34px; margin-right: 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--field-bg); color: var(--ink); font-size: 12px; padding: 0 10px; }
+/* 城市搜索联想 */
+.suggest {
+  position: absolute;
+  top: calc(100% - 6px);
+  left: 0; right: 0;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  max-height: 268px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.sg {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 9px 14px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.sg + .sg { border-top: 1px solid var(--line); }
+.sg:hover, .sg.on { background: var(--tint); }
+.sg-name { color: var(--ink); }
+.sg-osm {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--osm);
+  border: 1px solid var(--osm);
+  border-radius: 5px;
+  padding: 2px 5px;
+}
+.sg-sub { font-size: 12px; color: var(--muted); margin-left: auto; text-align: right; }
+
+/* 逐小时预报条 */
+.hourly {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;   /* 横滚到尽头不带着整页一起走 */
+  padding: 2px 2px 10px;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+.hourly::-webkit-scrollbar { height: 8px; }
+.hourly::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+.hr {
+  flex: 0 0 auto;
+  width: 58px;
+  scroll-snap-align: start;
+  /* 实底，不走 --surface：这一屏有 24 格，磨砂要给每一格单独取一次背景快照，
+   * 是这台机上最大的一笔常数开销（详见 17-glass.css 那条名单的来历）。
+   * 摘掉玻璃的同时必须连卡面一起换成 --card —— 留着半透而不糊，透出来的就是
+   * 生硬的渐变条纹，比实底难看。文字对比度因此只会更好（少一层复合）。 */
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 4px;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+/* 「现在」这一格高亮。以前是 .hr:first-child —— 那时小时条从此刻开始排，第一格就是现在；
+   今日天气排的是 00–23 时，首格多半是凌晨，再拿 first-child 当「现在」就是标错。 */
+/* 「现在」只描边 + 换时刻字色，**不换底**：以前那版给格子铺了 --tint-2，而 --muted / --pop
+   压在这个新底上是从没量过的配对（AA 扫描一跑就抓到 light 4.24、paper 3.75）。
+   格子自己的 --surface 是各主题量过的实底配对，动它等于把十个主题的底色全部重算一遍。 */
+.hr.now { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.hr.now .hr-t { color: var(--accent); font-weight: 600; }
+/* 已过去的格子：**不动 opacity**（那会把文字对比度一起压下去，而各主题的 AA 是按实色量过的），
+   改用「温度退成次要文字色 + 图标去色」表达「这段时间不会再发生了」。 */
+.hr.past .hr-temp { color: var(--muted); font-weight: 400; }
+.hr.past .hr-ic { filter: grayscale(1); }
+.hr-t { font-size: 12px; color: var(--muted); }
+.hr-ic { width: 26px; height: 26px; margin: 6px auto 4px; }
+.hr-ic svg { width: 100%; height: 100%; }
+.hr-temp { font-size: 14px; font-weight: 600; }
+.hr-desc { font-size: 10px; color: var(--muted); min-height: 13px; white-space: nowrap; overflow: hidden; }
+.hr-pop { font-size: 11px; color: var(--pop); min-height: 15px; }
+/* 逐小时的出处药丸：只有当前源没给逐小时、退到别家时才会出现（宁缺勿错）。
+   压在页面底上，所以用卡片那一系的实底写法，不套 hero 那版白字暗底。 */
+.hr-src {
+  font-size: 11px; font-weight: 400; line-height: 1.6; padding: 2px 9px; margin-left: 6px;
+  border-radius: 999px; background: var(--field-bg); border: 1px solid var(--line);
+  color: var(--muted); white-space: nowrap; cursor: help; vertical-align: 2px;
+}
+
+/* 气象详情网格 */
+.details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  /* 这一族留在玻璃上：最多 8 块、不横滚，而它正好压在主题立绘的下半身 —— 改实底等于把人盖掉
+   * （2026-10-19 真机图里量到的）。要摘的是上面那 24 格横滚砖，那才是每帧重取快照的一笔。 */
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px 12px;
+  box-shadow: var(--shadow);
+}
+.dt-ic { width: 20px; height: 20px; flex: 0 0 auto; }
+.dt-ic svg { width: 100%; height: 100%; }
+.dt-k { font-size: 13px; color: var(--muted); }
+.dt-v { font-size: 14px; font-weight: 600; margin-left: auto; white-space: nowrap; }
+
+/* 空气质量 */
+.air-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+/* 字色不写在这里：底色是 AQI 等级色（JS 按数据塞的 inline style，与主题无关），
+ * 配固定白字压在中度污染那一档只剩 4.18、「良」那一档只剩 2.25。改由 glass.inkFor 按底色挑黑/白，
+ * 两处渲染点（ui.js 的空气卡、rank.js 的榜行）一起下发 —— 所以这里不留 color，免得两份真值。 */
+.air-badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.air-num { font-size: 26px; font-weight: 600; line-height: 1; }
+.air-num i { font-size: 12px; font-style: normal; color: var(--muted); margin-left: 4px; }
+.air-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
+/* 全国排名只有走华为城市榜那一級才有；那一源不给分项浓度，所以与 .air-sub 实际不会同屏 */
+.air-rank { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+/* .cur-src 本来是给 hero 的渐变底用的（白字 + 半透明白描边）。搬到 var(--card) 上之后，
+ * 浅色主题里底和描边会同时"消失"（白压白），出处看着像漏排的小字，所以这里换成随主题的底。 */
+.air-card .cur-src { background: var(--field-bg); border-color: var(--line); }
+
+/* 预报卡降水概率 */
+.day .d-pop { font-size: 11px; color: var(--pop); margin-top: 4px; }
+
+/* 新增区块骨架 */
+.hourly .sk-hr { flex: 0 0 auto; width: 58px; height: 112px; border-radius: 12px; }
+.details .sk-dt { height: 44px; border-radius: 12px; }
+
+/* 区块标题行（范围标签 + 返回按钮） */
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.scope { font-size: 13px; font-weight: 400; color: var(--accent); margin-left: 6px; }
+.tool-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .15s;
+  white-space: nowrap;
+}
+.tool-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 可下钻的预报卡 */
+.day.act { cursor: pointer; transition: .15s; }
+.day.act:hover { border-color: var(--accent); transform: translateY(-2px); }
+.day.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring), var(--shadow); }
+.day .d-mm { font-size: 11px; color: var(--pop); }
+/* 「真没下」这一行不许借 --pop（那是「有雨」的颜色）。借用同一张卡上 .d-name/.d-lo 已经在用的
+ * --muted，不新增配色配对，AA 那条扫描本来就量过这一对。 */
+.day .d-mm.none { color: var(--muted); }
+
+/* ===== 底部菜单与测算板块 =====
+ * 配色一律走变量；选中态复用「--brand 底 + --hero-ink 字」这对已通过 9 套主题对比度实测的组合。
+ * 可见性由 body[data-tab] 控制，切 tab 的逻辑在 js/tabs.js 的 setTab()。
+ */
+.tabbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 40;
+  display: flex;
+  gap: 8px;
+  padding: 8px 14px calc(8px + env(safe-area-inset-bottom, 0px));
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 9px 0;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--field-bg);
+  color: var(--muted);
+  font-size: 14px;
+  cursor: pointer;
+  /* 分属性写：transform 若跟着 .16s 走，按下反馈会显得黏手 */
+  transition: color .16s, border-color .16s, background-color .16s, transform .09s;
+}
+.tab:hover { color: var(--accent); border-color: var(--accent); }
+.tab[aria-selected="true"] {
+  /* 选中态不整块铺品牌色了：底部这一条横贯屏底，铺满就是一块大色板压在所有卡片之下，
+     与主卡同一个毛病。改成「同底 + 主色描边 + 主色字 + 底下一条主色杠」，
+     跟主卡说的是同一套话。字重仍然加，色觉障碍和灰阶打印下也分得清哪一项是当前的。 */
+  background: var(--field-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 600;
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+.tab-i { width: 17px; height: 17px; display: inline-flex; }
+.tab-i svg { width: 100%; height: 100%; display: block; }
+
+/* 板块可见性。三个板块各有自己的容器（天气那页的元素原先散在 .app 下、要靠十条选择器点名，
+ * 2026-10-10 收进 #weatherView），所以这里三条就够。
+ * 顺带补上一个一直漏网的：#emptyState 以前不在那份清单里，查询失败后再切到运势/新闻，
+ * 那张「什么都没查到」的卡会跟着一起过去。整块藏就不会再有点名点漏这种事。 */
+body:not([data-tab="weather"]) #weatherView,
+body:not([data-tab="fortune"]) #fortuneView,
+body:not([data-tab="news"]) #newsView { display: none; }
+
+.fz-day { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; color: var(--muted); margin: 2px 0 12px; }
+.fz-day b { color: var(--ink); font-size: 16px; }
+.fz-sub { color: var(--muted); font-size: 12px; }
+.fz-sub.small { font-size: 11px; margin: 10px 0 0; }
+.fz-form { display: flex; flex-wrap: wrap; gap: 0 12px; }
+.fz-tools { display: flex; gap: 8px; margin: 2px 0 6px; }
+.fz-tools .fz-reset { margin-left: auto; }   /* 重置靠最右，与两个导出按钮分开，免得误点 */
+/* 生辰锁定：按住两秒、进度条走完才解锁，提前松手就回零。
+ * touch-action:none 是必须的 —— 不然手机上「按住」会被判成滚动手势，pointerdown 直接取消。 */
+.fz-lock, .fz-hold { position: relative; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+.fz-lock {
+  width: 100%; margin-top: 6px; padding: 9px 12px; border-radius: 10px; text-align: center;
+  border: 1px dashed var(--line); background: var(--field-bg); color: var(--ink);
+  font-size: 12px; cursor: pointer;
+}
+.fz-lock-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--tint); }
+.fz-lock.holding .fz-lock-fill, .fz-hold.holding .fz-lock-fill { width: 100%; transition: width 2s linear; }
+.fz-lock-text, .fz-hold > span:last-child { position: relative; }
+.fz-form.locked { opacity: .55; }
+.fz-form.locked input, .fz-form.locked select { pointer-events: none; }
+.fz-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin: 14px 0;
+}
+.fz-card:empty { display: none; }
+.fz-card h3 { margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fz-meta { font-size: 12px; font-weight: 400; color: var(--muted); }
+.fz-glyph { font-size: 19px; color: var(--accent); }
+
+/* 四柱竖排：干在上、支在下，与传统排盘表一致 */
+.fz-pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fz-pill { border: 1px solid var(--line); border-radius: 12px; padding: 8px 2px; text-align: center; background: var(--field-bg); }
+.fz-pill.me { border-color: var(--accent); background: var(--tint); }
+.fz-pill.dim { opacity: .58; }
+.p-l { display: block; font-size: 12px; color: var(--muted); }
+.p-gz { display: block; font-size: 21px; font-weight: 600; line-height: 1.3; }
+.p-e { display: block; font-size: 11px; color: var(--muted); }
+
+/* 五行占比：底色固定是文化约定（木青火赤…），不随主题换肤，故这里刻意不取 --brand */
+.fz-wx { display: flex; gap: 6px; margin: 12px 0 2px; }
+.wx { flex: 1; position: relative; height: 26px; border-radius: 8px; background: var(--tint-2); overflow: hidden; }
+.wx i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); opacity: .32; }
+.wx em { position: relative; font-style: normal; font-size: 12px; line-height: 26px; text-align: center; display: block; color: var(--ink); }
+.fz-rel { font-size: 13px; margin: 10px 0 0; }
+.fz-score { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
+.fz-score b { font-size: 15px; color: var(--accent); }
+.fz-stars { letter-spacing: 1px; font-size: 14px; color: var(--sun); }
+.fz-stars i { font-style: normal; opacity: .22; }
+.fz-aspects { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 4px; color: var(--muted); }
+.fz-luck { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 10px; color: var(--muted); }
+.fz-luck b { color: var(--ink); font-weight: 600; }
+.fz-yi { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 8px; }
+.tag { font-style: normal; margin-right: 6px; border-radius: 6px; padding: 1px 6px; font-size: 12px; }
+.tag.ok { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-line); }
+.tag.err { background: var(--err-bg); color: var(--err-ink); border: 1px solid var(--err-line); }
+.fz-tip { font-size: 13px; color: var(--pop); margin: 8px 0 0; }
+.fz-empty { color: var(--muted); font-size: 13px; margin: 0; }
+.fz-disc { font-size: 11px; color: var(--muted); line-height: 1.75; margin: 16px 0 0; }
+/* code 片段自己铺 --code-bg，字色不能跟着外层走 --muted：那一档在浅色主题下只有 3.58~4.47，
+ * 不达 AA（10 套主题的配对由 tests/app.checks.mjs 逐套量）。换成 --ink 一处修完全部主题。 */
+.fz-disc code, .fz-hl code { background: var(--code-bg); color: var(--ink); border-radius: 4px; padding: 0 4px; }
+/* 今日黄历卡：日柱那一个字是主角，其余按行铺开；值日badge 靠右，吉凶用 ok/err 同色系 */
+.hl-gz { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: var(--muted); }
+.hl-gz b { font-size: 24px; color: var(--ink); letter-spacing: 1px; }
+.hl-dao { margin-left: auto; font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--tint); color: var(--ink); }
+.hl-dao.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.hl-dao.err { background: var(--err-bg); color: var(--err-ink); }
+.hl-note { font-size: 13px; margin: 10px 0 0; }
+.hl-foot { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+/* ---------- 板块切换特效 ----------
+ * 只动 opacity / transform 这两个合成属性：它们交给合成器，主线程一帧都不占。
+ * 方向由 js/tabs.js 写成 body 上的一个类名；顶栏与底部菜单栏都不在 .view 里，切换时天然原地不动
+ * —— 底部导航跟着一起滑是廉价感的最大来源。
+ * 容器每次从 display:none 回到在场时浏览器会自己重放它身上的 animation，所以不需要
+ * 「摘类名 → 强制重排 → 挂回去」那套重发把戏；要不要动也轮不到 JS 问，末尾那条 media query 一挡就没了。
+ *
+ * 这里原本走的是原生 View Transitions（old/new 两张快照同时动，才是真正的「推入」）。2026-10-11 在
+ * 华为 LNA-AL00 上同一页对拍：带装饰的那套主题下，纯 CSS 首帧 16~57ms，把旧那套注回去、同一次点击外面
+ * 再套一次整页快照是 20~73ms —— **分不出高下**。更早一轮在「装进壳里的那一份」上量到 73~107 对 20~51，
+ * 两轮只差在页面来源（壳里的 assets 对 开发机现 Serving），还没归因清楚，所以这里不敢写成结论。
+ * 每次都复现的是另一件事：切**进天气**比切出去贵 2~3 倍（首帧 41~57 对 16~32）。贵的不是动画，
+ * 是那一页从 display:none 回来要重建布局、重画整叠 backdrop-filter。动效这一层已经不是瓶颈了。 */
+@keyframes view-in-fwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+@keyframes view-in-back { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+body.sw-fwd .view { animation: view-in-fwd .26s cubic-bezier(.32, .72, .24, 1) both; }
+body.sw-back .view { animation: view-in-back .26s cubic-bezier(.32, .72, .24, 1) both; }
+/* 进场是从右往左推（反向是左往右），transformed 的盒子要计入文档的溢出区，那 22px 会把
+ * scrollWidth 撑宽、页面能横向抖出一小截。用 clip 不用 hidden：hidden 会把根元素变成滚动容器
+ * （sticky、滚动恢复都跟着变），clip 只裁不滚，与 visible 搭着也不改变另一轴。
+ * 老 WebView 不认 clip 时这条直接失效，最坏就是回到那 22px 的抖动，不会更糟。 */
+html { overflow-x: clip; }
+.tab:active { transform: scale(.985); }
+
+/* 浮层（排名 .sheet、设置 .modal）的**进场**也归这一片管，与板块切换同一套话：
+ * 面板从 hidden 回到在场时浏览器自动重放它身上的 animation，所以这一头不需要 JS。
+ * 退场那一头留在 js/lib/sheet.js 里用 WAAPI 播——「必须等动画跑完才能 hidden」这件事只有 JS 知道。
+ * 两边的数值是同一对：sheet.js 的 OUT 就是 overlay-in 的反向，改一处必须同时改另一处，
+ * 否则进出场各走各的曲线，看着就像两个面板。设置弹窗以前只有退场没有进场，一开就是硬切。
+ *
+ * **末尾不许写 `both`/`forwards`。** 这一条踩过一次整片失效：`to` 那帧是 `transform: none`，
+ * 而 fill 会把这个「恒等矩阵」永远钉在元素上 —— 非 none 的 transform 就是一个 backdrop root，
+ * 把里面每一层 backdrop-filter 的取样范围裁成这个盒子自己，于是磨砂只剩半透，底下那页的字原样透上来。
+ * 2026-10-19 真机量的：设置面板开着时里面十几层磨砂一起没生效，computed 读数全都正常，只有像素不认。
+ * 摘掉 fill 之后终态就是元素本来那帧（opacity 1 / transform none），视觉上一个像素都没变。
+ * 上面 `.view` 那两条还留着 `both`：它们挂在 body 的类名上，类名一摘效果就整个撤走，
+ * 量过 computed transform 确实是 none —— 但那是「靠别人摘类名」保的，面板这一头没人摘。 */
+@keyframes overlay-in { from { opacity: 0; transform: translateY(9px) scale(.99); } to { opacity: 1; transform: none; } }
+.sheet, .modal { animation: overlay-in .22s cubic-bezier(.32, .72, .24, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  body.sw-fwd .view, body.sw-back .view, .sheet, .modal { animation: none; }
+  .tab, .tab:active { transition: none; transform: none; }
+}
+/* ---------- 手机上的设置面板：改底部抽屉 ----------
+ * 居中弹窗在 411px（K60 的 CSS 视口 = 1440/3.5）宽的手机上会被挤成一格 110px 的下拉，
+ * 而且上下都要滚动。手机上贴底铺开是更合身的形态：横向占满、只留顶部圆角、
+ * 两个并排的单选改成上下排，按钮钉在底部，安全区内边距让开手势条。 */
+@media (max-width: 520px) {
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-card {
+    width: 100%;
+    max-width: none;
+    border-radius: 20px 20px 0 0;
+    padding: 16px 14px 0;          /* 底部留白交给 .modal-actions 统一带安全区，别两层叠着加 */
+    max-height: 92vh;
+    max-height: 92dvh;          /* dvh 才不会被手机浏览器地址栏吃掉，旧引擎退回 vh */
+  }
+  /* 标题与按钮条都在滚动区外，不再 sticky、也不再刷一层 --card：
+     它们本来就长在卡片的玻璃上，隔一条发丝线就够读出"这是一块"。 */
+  .modal-head { padding: 2px 0 10px; border-bottom: 1px solid var(--line); }
+  .modal-head h2 { font-size: 17px; }
+  .modal .close { font-size: 22px; padding: 8px 12px; margin: -8px -6px -8px 0; }   /* 触控目标够 44px */
+  .group .row { display: block; }                     /* 温度/风速两个下拉上下排 */
+  .group .row .field { margin: 10px 0; }
+  .field.inline > span { min-width: 58px; }
+  .field input, .field select { font-size: 15px; padding: 11px 12px; }
+  .modal-actions {
+    margin: 0 -14px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line);
+  }
+  .modal-actions button { flex: 1; }
+}
+
+/* ---------- 新闻板块 ----------
+ * 列表放在 --card 上而不是页面渐变上：标题/时间用的 --ink / --muted 是照卡片量过对比度的，
+ * 直接铺在 --w-* 渐变上等于换了一个没量过的底色。
+ * 进场的淡入不写在这里：三个板块共用容器那一条（见 13-transition.css）。 */
+.news-head { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; }
+.news-chips { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+.chip-btn {
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition: .15s;
+}
+.chip-btn.on { background: var(--brand); border-color: var(--brand-2); color: var(--hero-ink); font-weight: 600; }
+.news-note { font-size: 13px; color: var(--ink); margin: 0 0 10px; }
+.news-note.warn { background: var(--hint-bg); border: 1px solid var(--hint-line); padding: 10px 12px; border-radius: 10px; }
+.news-note.err { background: var(--err-bg); border: 1px solid var(--err-line); color: var(--err-ink); padding: 10px 12px; border-radius: 10px; }
+.news-list {
+  list-style: none; margin: 0; padding: 0 14px;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.news-item + .news-item { border-top: 1px solid var(--line); }
+.news-item a { display: block; padding: 12px 2px; text-decoration: none; color: var(--ink); border-radius: 8px; }
+.news-item a:active { background: var(--tint-2); }
+.news-title { font-size: 15px; line-height: 1.5; }
+.news-meta { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.news-src { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+.news-disc { font-size: 12px; color: var(--muted); margin: 14px 0 0; line-height: 1.7; }
+
+/* ---------- 气象预警 ----------
+ * 色条与圆点是这一块唯一的用色处（--al 由 js/lib/alerts.js 按级别给，四个值都对着 9 套主题的
+ * --card 量过 ≥3:1）。文字一律 --ink / --muted：那四个色当图形件够，当正文都不够 4.5，
+ * 尤其黄色 —— 拿它当字色在最浅的主题上只有 3.3，等于把最该看清的一行做糊。
+ * 展开用原生 <details>，不加一行 JS，也不和 View Transitions 抢。 */
+.alert-list { display: flex; flex-direction: column; gap: 8px; }
+.alert-item {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--al, var(--line));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.alert-item > summary {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 12px; cursor: pointer; list-style: none;
+}
+.alert-item > summary::-webkit-details-marker { display: none; }
+.al-dot { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: var(--al, var(--muted)); }
+.al-name { font-size: 14px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.al-area { flex: 1; min-width: 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.al-time { flex: 0 0 auto; font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.alert-item[open] > summary { border-bottom: 1px solid var(--line); }
+.al-text { margin: 0; padding: 10px 12px 12px; font-size: 13px; line-height: 1.75; color: var(--ink); }
+.al-guide {
+  margin: 0; padding: 10px 12px 12px; font-size: 13px; line-height: 1.75; color: var(--ink);
+  background: var(--hint-bg); border-top: 1px solid var(--hint-line);
+}
+.al-guide b { display: block; font-size: 12px; color: var(--ink); margin-bottom: 3px; font-weight: 600; }
+
+/* ---------- 卡面玻璃（值在 js/lib/themes.js 的 glass 那一格） ----------
+ * 2026-10-04 之前这一块是「自定义背景」的配套：只有选了预设图或相册图（body[data-bg] 不是 auto）
+ * 才启用玻璃，随天气变的底是实底卡。背景模块取消之后，底只剩主题自己的天气渐变，
+ * 于是玻璃不再有开关这一层 —— 恒开，除非下面那两条否决生效。
+ * 三个量由主题一起下发（都在 applyTheme 里写，别在别处再算一遍）：
+ *   --glass-a    卡面不透明度 α
+ *   --glass-mix  次要文字 --muted 朝 --ink 提档的比例
+ *   --glass-blur 卡背景的模糊半径
+ * 为什么必须同时提 --muted：卡面半透之后底是复合色。2026-09-23 那轮 216 个采样（9 套主题 × 8 预设 × 3 色标）
+ * 实测 α=88% 时 muted 最低只剩 3.47（AA 要 4.5），掺 24% 的 ink 才回到 4.52。
+ * 当时还证出「对任意照片 α 不得低于 76%」—— 照片入口取消之后那条下限失去了对象，
+ * 但方法没作废：现在是对**每套主题自己的三族底**（渐变端点 / 子面板 / 压在 --veil 上的弹窗）逐个重测，
+ * 每套一套数，见 js/lib/themes.js 的 glass 那一格与 S5 那一张表。
+ * 提档只作用于 --muted：--pop / --accent 压不住的时候只能改色，别指望这里再加 mix。 */
+body { --surface: var(--card); --muted: var(--muted-base); }
+/* color-mix 要 Chrome 111+。不支持的老 WebView 整块不生效，卡面退回实底样子，
+ * 也就是「不能变透」而不是「字看不清」—— 所以这里必须包 @supports，不能裸写。 */
+@supports (background: color-mix(in srgb, red 50%, transparent)) {
+  body {
+    --surface: color-mix(in srgb, var(--card) var(--glass-a, 100%), transparent);
+    --muted: color-mix(in srgb, var(--muted-base) calc(100% - var(--glass-mix, 0%)), var(--ink));
+  }
+}
+@supports (backdrop-filter: blur(2px)) {
+  /* 半透之后要靠模糊把底的细节抹平。
+   * 这份名单与上面用 var(--surface) 的那批卡面一一对应，改卡面要同时改这里
+   * （tests/app.checks.mjs 里有一条断言专门盯这两份名单不许各自漂移）。
+   * 走 --glass-fx 而不是把声明写死：这样「某一块整片不该糊」是改一个变量，
+   * 不是去名单里挑挑拣拣 —— .sheet 就是这么退出玻璃的，见下面那条。
+   * 2026-10-18 退出 .hr 一族：一屏 24 格小时砖，而且这一条横滚每滚一帧都要给每格重取一次背景快照，
+   * 是这台机上最大的一笔常数开销 —— 少一层磨砂看不出来，少 24 次每帧快照看得出来。退出名单必须
+   * 连 --surface 一起换掉：留着半透而不糊，透出来的是生硬的渐变条纹，比实底难看（那条「两份名单
+   * 一一对应」的断言就是防这个的）。同一天试过的 .dt 已经放回名单：它最多 8 块、不横滚，代价只有
+   * 1/4，而它正压在主题立绘的下半身，改实底等于把人盖掉（2026-10-19 真机图里看到的）。 */
+  body :is(
+    .ccard, .current-card, .air-card, .day, .dt, .chip, .gear, .icon-btn, .search input, .loc-btn,
+    .tool-btn, .compare-tools .tool, .suggest, .fz-card, .news-list, .alert-item,
+    .rank-row, .rank-loading, .sheet-note, .tabbar, .modal-card,
+    .sk-card, .forecast .sk-day) {
+    -webkit-backdrop-filter: var(--glass-fx, blur(var(--glass-blur, 0px)) saturate(1.1));
+    backdrop-filter: var(--glass-fx, blur(var(--glass-blur, 0px)) saturate(1.1));
+  }
+}
+/* 系统的「增加对比度」优先级高于主题定的那个 α：整片回到实底、取消玻璃。
+ * 这是 Apple Music 网页版同款写法（@media (prefers-contrast: more){backdrop-filter:none}），
+ * 而且 prefers-contrast 已经是 Baseline（2022-05），不像 prefers-reduced-transparency 那样还没铺开 ——
+ * 所以这里只认前者，别指望后者能覆盖到多数 WebView。
+ * 两条 @supports 写的也是 body，同特异度：这一条必须写在它们后面才盖得住。 */
+@media (prefers-contrast: more) {
+  body {
+    --glass-fx: none;
+    --surface: var(--card);
+    --muted: var(--muted-base);
+  }
+}
+/* 裸文字垫底：这几个块直接悬在背景上，没有卡面可透，所以自己垫一层 —— 用的就是上面那个 --glass-a
+ * （以前它读单独下发的 --bg-chip，两个名字同一个数，改一处忘另一处就成两套透明度）。
+ * 上面那条 --muted 的补偿对这里同样生效（它们用的就是同一个变量）。 */
+body .brand,
+body .fz-day,
+body .fz-form,
+body .fz-disc,
+body .forecast-title,
+body .foot,
+body #coordLine,
+body .news-src,
+body .news-disc {
+  background: var(--card);
+  background: color-mix(in srgb, var(--card) var(--glass-a, 100%), transparent);
+  border-radius: 8px;
+  padding: 4px 9px;
+  width: fit-content;
+  max-width: 100%;
+}
+/* 设置里的预设缩略图（.bg-grid/.bg-thumb）随背景模块一起删了 */
+
+/* 桌面图标预设（设置里那一组，只在壳里出现）。
+ * 标签用 --muted、底用 --field-bg、描边用 --line —— 全是这一层浮层里已经在用的配对，不新增配色组合。
+ * 每枚预览方块里的图与色由 js/lib/appicon.js 的 ICON_CHOICES 直接写进 svg（要与 android 那几份
+ * vector 一致），所以这里只管形状，不管画什么。 */
+.icon-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 10px; margin: 10px 0 4px; }
+.ic-thumb { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 9px 4px; border: 2px solid var(--line); border-radius: 12px; background: var(--field-bg); cursor: pointer; }
+.ic-thumb svg { border-radius: 12px; display: block; }
+.ic-thumb span { font-size: 11px; color: var(--muted); }
+.ic-thumb.on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring); }
+/* 相册选图那一行的 .bg-photo/.file-btn 也随背景模块删掉了 */
+input[type="range"] { width: 100%; accent-color: var(--accent); }
+
+/* ---------- 全屏子视图（`.sheet`，现在只有空气排名一个） ----------
+ * 盖过底部菜单，自己带返回；锁背景滚动靠 body[data-sheet]（不是 class，见 lib/sheet.js 的说明） */
+.sheet {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--bg);
+  /* 浮层自己铺了一层不透明的 --bg，底下的背景图透不过来，所以这一片必须整块退出玻璃：
+   * 排名一开是 360 行 .rank-row，各算一层 backdrop-filter 就是 362 层糊在一层实色上 ——
+   * 视觉收益为零，而手机 1440x3200 上每帧要多糊约 38 倍视口的高斯像素，合成器直接拖死
+   * （2026-09-23 应用卡死的根因，实测数字见 .issues/2026-09-23-app-freeze/issue.md）。
+   * 顺带把卡面与次要文字退回主题原本量过 AA 的那对实底配色：半透在 --bg 上是另一对没量过的组合。 */
+  --glass-fx: none;
+  --surface: var(--card);
+  --muted: var(--muted-base);
+  display: flex; flex-direction: column;
+  /* 整块自己不滚：滚动只许发生在 .sheet-body 那一层（与 .modal-card 同一套三段式）。
+     少了这一条，标题/返回/排序会跟着 360 行一起滚走，滚到深处屏上就没有出口了。 */
+  overflow: hidden;
+  /* 进出场不在这里：那一段与板块切换共用（进场见 13-transition.css 的 overlay-in，退场见 js/lib/sheet.js）。
+     退场必须等动画跑完才能 hidden，这件事只有 JS 知道，写在 CSS 里会两头对不上。 */
+}
+/* 用 data-sheet 属性而不是 body 类：body 的类名这一层以前被 ui.applyBg() 每次刷新整体重写，
+   挂在类上的东西会被它抹掉。（2026-10-04 起 applyBg 改写 data-weather，类名已经腾出来了，
+   但这条不改：属性选择器与主题的 data-theme 同一风格，也没必要为一件没坏事的东西再动一次。） */
+body[data-sheet] { overflow: hidden; }
+/* 只有这一条是真把页面钉住的：根元素的 overflow 会传播给视口。
+   body 那条单独用不成立 —— body 没有固定高度，盒子跟内容一样高，裁它等于没裁
+   （2026-10-01 回归里真去推 scrollTop 才暴露：属性挂着、overflow=hidden、页面照样滚）。 */
+html[data-sheet] { overflow: hidden; }
+.sheet-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+  background: var(--card); border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.sheet-head h2 { margin: 0; font-size: 17px; flex: 1; min-width: 0; color: var(--ink); }
+.sheet-back { border: none; background: none; color: var(--ink); font-size: 30px; line-height: 1; cursor: pointer; padding: 0 6px; min-width: 44px; min-height: 44px; border-radius: 12px; transition: .12s; }
+/* 立刻给一点按压反馈：返回这件事的「跟手」一半来自这里，另一半是上面那两段进出场动画 */
+.sheet-back:active { background: var(--tint); transform: scale(.92); }
+.sheet-act { border: 1px solid var(--line); background: var(--field-bg); color: var(--ink); font-size: 12px; border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+/* .sheet 的底是 --bg（页面底），不是卡片。--muted 只对着 --card 量过（4.53~6.74），
+   压在 --bg 上是一对没量过的组合，所以这类说明文字一律自己铺一层 --card 实底。 */
+.sheet-note { flex: 0 0 auto; margin: 10px 14px 4px; font-size: 12px; color: var(--muted); background: var(--surface); border-radius: 8px; padding: 6px 9px; }
+
+.rank-list { list-style: none; margin: 0; padding: 0 14px; }
+ol.rank-list { counter-reset: none; }
+#rankMine { padding-bottom: 2px; }
+#rankMine:empty { display: none; }
+#rankMine .rank-row { border-top: none; margin-bottom: 6px; box-shadow: var(--shadow); }
+.rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.rank-row:first-child { border-top: none; }
+.rank-row.mine { border: 1px solid var(--accent); border-radius: 12px; }
+.rank-row.empty { color: var(--muted); font-size: 13px; border: 1px dashed var(--line); border-radius: 12px; }
+.rank-no { flex: 0 0 42px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rank-city { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rank-city b { font-size: 15px; font-weight: 600; color: var(--ink); }
+.rank-city i { font-size: 11px; font-style: normal; color: var(--muted); }
+.rank-aqi { flex: 0 0 46px; text-align: right; font-size: 17px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rank-loading { padding: 14px; font-size: 13px; color: var(--muted); background: var(--surface); border-radius: 10px; margin: 0 0 8px; }
+.sheet .rank-list:last-child { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+

@@ -1,0 +1,31 @@
+/* ---------- 手机上的设置面板：改底部抽屉 ----------
+ * 居中弹窗在 411px（K60 的 CSS 视口 = 1440/3.5）宽的手机上会被挤成一格 110px 的下拉，
+ * 而且上下都要滚动。手机上贴底铺开是更合身的形态：横向占满、只留顶部圆角、
+ * 两个并排的单选改成上下排，按钮钉在底部，安全区内边距让开手势条。 */
+@media (max-width: 520px) {
+  .modal { padding: 0; align-items: flex-end; }
+  .modal-card {
+    width: 100%;
+    max-width: none;
+    border-radius: 20px 20px 0 0;
+    padding: 16px 14px 0;          /* 底部留白交给 .modal-actions 统一带安全区，别两层叠着加 */
+    max-height: 92vh;
+    max-height: 92dvh;          /* dvh 才不会被手机浏览器地址栏吃掉，旧引擎退回 vh */
+  }
+  /* 标题与按钮条都在滚动区外，不再 sticky、也不再刷一层 --card：
+     它们本来就长在卡片的玻璃上，隔一条发丝线就够读出"这是一块"。 */
+  .modal-head { padding: 2px 0 10px; border-bottom: 1px solid var(--line); }
+  .modal-head h2 { font-size: 17px; }
+  .modal .close { font-size: 22px; padding: 8px 12px; margin: -8px -6px -8px 0; }   /* 触控目标够 44px */
+  .group .row { display: block; }                     /* 温度/风速两个下拉上下排 */
+  .group .row .field { margin: 10px 0; }
+  .field.inline > span { min-width: 58px; }
+  .field input, .field select { font-size: 15px; padding: 11px 12px; }
+  .modal-actions {
+    margin: 0 -14px;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-top: 1px solid var(--line);
+  }
+  .modal-actions button { flex: 1; }
+}
+

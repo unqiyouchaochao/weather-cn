@@ -1,0 +1,56 @@
+/* Modal */
+.modal {
+  position: fixed; inset: 0;
+  background: var(--veil);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+  z-index: 50;
+}
+.modal-card {
+  background: var(--surface);
+  width: 100%; max-width: 520px;
+  border-radius: var(--radius);
+  padding: 20px;
+  max-height: 88vh;
+  /* 卡片自己不再滚（原来是 `overflow:auto` + 标题/按钮条 sticky）：改成 flex 列，
+     只有中间的 .modal-body 滚。sticky 那两条各自刷了一层 --card，与卡片的 --surface
+     玻璃不是同一块材质，钉在顶上就是一条盖过圆角的异色带（2026-10-01 用户报的现象）。 */
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+/* 「一个浮层里只有一个滚动容器」这件事只在这里表达一次：设置面板的 .modal-body 与
+   排名浮层的 .sheet-body 共用同一条（2026-10-02 榜的标题跟着滚走，就是因为那一层漏了）*/
+.modal-body, .sheet-body {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;          /* 滑到顶/到底不带着背后那页一起滚 */
+  -webkit-overflow-scrolling: touch;
+}
+.sheet-body { padding: 0 0 4px; }
+.modal-head { display: flex; justify-content: space-between; align-items: center; }
+.modal-head h2 { margin: 0; font-size: 18px; }
+.close { border: none; background: none; font-size: 26px; cursor: pointer; color: var(--muted); line-height: 1; }
+
+.field { display: block; margin: 14px 0; }
+.field > span { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+.field input, .field select, .field textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  background: var(--field-bg);
+}
+.field textarea { resize: vertical; }
+.field input:focus, .field select:focus, .field textarea:focus { outline: none; border-color: var(--accent); }
+/* 滑杆的 UA margin（Chrome 给 range 的 2px）叠在上面的 width:100% 上，两头各溢出 2px：
+ * 红米真机量到 `.field` 358>354。别的 input 没有这条 UA margin，所以只补 range。 */
+.field input[type=range] { margin: 0; }
+
+.hint { font-size: 12px; color: var(--muted); background: var(--hint-bg); border: 1px solid var(--hint-line); padding: 8px 10px; border-radius: 10px; }
+.hint.small { margin-top: 12px; }
+.hint code { background: var(--code-bg); color: var(--ink); padding: 1px 6px; border-radius: 6px; font-size: 12px; }
+
