@@ -9,7 +9,7 @@ import { F } from '../files.mjs';
 
 export default [
 
-  /* ↓ 墨迹那五条失败路径：这四条各拦一种「它骗人」的方式 */
+  /* ↓ 中国天气选名与码表清洗那四条：各拦一种「它骗人」的方式 */
   { name: '平局改回按行序取', file: F.china, from: 'return tied.find(s => s.name === q || (qs && s.name === qs)) || tied[0];', to: 'return tied[0];', expect: '按所查城市名选' },
   { name: '距离上限放到 250°（脏坐标不再被拒）', file: F.china, from: 'if (Math.sqrt(bd) > 2.5) return null;', to: 'if (Math.sqrt(bd) > 250) return null;', expect: '报不出站' },
   { name: 'stationFor 不把城市名传下去', file: F.china, from: 'return resolve(lat, lon, city);', to: 'return resolve(lat, lon);', expect: '只有城市名时仍查到' },

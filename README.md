@@ -97,7 +97,6 @@ npm run apk      # gen-styles → gen-shell → cap sync → gradlew assembleDeb
 - 桌面图标只能在那 4 套预设之间换（Android 图标是编译期资源）；各家启动器重画那一枚是异步的。
 - 降水量、风力等字段源没给就整行不画，也不会用别的字段估算 —— 宁缺勿错是这仓库的默认取向。
 - 当前是 debug 签名、`versionCode 1` / `versionName 1.0`；正式发布签名与商店元数据不在本仓库范围内。
-- 本快照不内置墨迹等逆向网页接口；内置源见上表。
 
 更细的取舍与实测数字见 [`技术栈说明.md`](技术栈说明.md) 与 [`CONTRIBUTING.md`](CONTRIBUTING.md)。
 
