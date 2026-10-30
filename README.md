@@ -41,6 +41,7 @@ node tools/run-checks.mjs  # 需要本机有 Edge 或 Chrome，约 60~70 秒；�
 | `node tools/anchor-audit.mjs` | 变异表里每一处锚点还锚不锚得住 |
 | `node tests/glass.test.mjs` | 玻璃材质数学（WCAG 比值、合成、反解） |
 | `node tests/theme-pkg.test.mjs` | 主题插件包的六道离线闸 |
+| `node tools/theme-make.mjs init <id> [显示名]` / `… build <id>` | 起一套主题工作目录并打包（底从范式 §0 刮），打完立刻过闸；工作目录默认在仓库外 |
 | `node tools/theme-pkg-check.mjs 你的.themepkg.json` | 主题包能不能导入、最差那格配色过不过 AA |
 | `node tools/falsify.mjs` | 逐条把实现改坏，确认对应断言真的会红（**很慢**，一整趟约两小时，见 `CONTRIBUTING.md`） |
 

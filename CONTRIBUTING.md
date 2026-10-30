@@ -49,6 +49,7 @@ Service Worker 是 cache-first。验证改动时换一个新端口（换 origin 
 | `node tools/anchor-audit.mjs` | 变异表里每一处锚点还锚不锚得住 | 纯 Node；当前基线 89 个锚点 / 失锚 0 |
 | `node tests/glass.test.mjs` | 玻璃材质数学（WCAG 比值、合成、反解） | 纯 Node |
 | `node tests/theme-pkg.test.mjs` | 主题插件包的六道离线闸 | 纯 Node |
+| `node tools/theme-make.mjs init <id> [显示名]` / `… build <id>` | 起一套主题工作目录（底从范式 §0 刮，不留第二份）、打包并立刻过闸 | 纯 Node；工作目录默认落在**仓库外**，往仓内写要显式 `--allow-in-repo` |
 | `node tools/theme-pkg-check.mjs 你的.themepkg.json` | 单个主题包能不能导入、最差配色过不过 AA | 纯 Node；可加 `--explain` / `--fix` |
 | `node tools/run-checks.mjs` | 浏览器回归：注入同源 iframe 量真 DOM / 真 computed style / 真模块 | 需要先起 `npm run serve:checks`，并本机有 Edge/Chrome；当前基线 102 条，约 60~70 秒 |
 | `node tools/falsify.mjs` | 逐条把实现改坏，确认对应断言会红，再还原 | **很慢**（历史基线整趟约 2.5 小时；本树 v1 尚未跑全量，处数以开局打印为准），独占锁，见下 |
@@ -115,6 +116,7 @@ Service Worker 是 cache-first。验证改动时换一个新端口（换 origin 
 - 判据只有一份：`js/lib/themeScan.js`。命令行 `theme-pkg-check` 与 App 导入用的是同一套，不要出现「命令行放行、App 拒绝」的两把尺子。
 - 改契约要同时：升 CACHE、重跑 `node tests/theme-pkg.test.mjs` 与 `node tools/theme-pkg-check.mjs <包>`、在 PR 里明确写「契约变了」。已有主题包需要重新验收。
 - **不要为了让旧包通过而放宽运行时判据**；兼容旧包应在包侧改，不在尺子上改。
+- `tools/theme-make.mjs` 的起盘底是**刮范式 §0 那个 json 块**来的：改那份底不用回头改脚本，但改包格式时要连着看 §0 那份还过不过闸。这份工具不校验 id 格式、不算素材预算、不量对比度 —— 那些只住在 `validate` / `worstContrast` 里，它只多一条文件系统守卫（id 不许含路径分隔符）。
 
 ### 4.7 Android / 原生侧
 
