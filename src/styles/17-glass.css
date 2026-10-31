@@ -26,10 +26,15 @@ body { --surface: var(--card); --muted: var(--muted-base); }
    * 这份名单与上面用 var(--surface) 的那批卡面一一对应，改卡面要同时改这里
    * （tests/app.checks.mjs 里有一条断言专门盯这两份名单不许各自漂移）。
    * 走 --glass-fx 而不是把声明写死：这样「某一块整片不该糊」是改一个变量，
-   * 不是去名单里挑挑拣拣 —— .sheet 就是这么退出玻璃的，见下面那条。 */
+   * 不是去名单里挑挑拣拣 —— .sheet 就是这么退出玻璃的，见下面那条。
+   * 2026-10-18 退出 .hr 一族：一屏 24 格小时砖，而且这一条横滚每滚一帧都要给每格重取一次背景快照，
+   * 是这台机上最大的一笔常数开销 —— 少一层磨砂看不出来，少 24 次每帧快照看得出来。退出名单必须
+   * 连 --surface 一起换掉：留着半透而不糊，透出来的是生硬的渐变条纹，比实底难看（那条「两份名单
+   * 一一对应」的断言就是防这个的）。同一天试过的 .dt 已经放回名单：它最多 8 块、不横滚，代价只有
+   * 1/4，而它正压在主题立绘的下半身，改实底等于把人盖掉（2026-10-19 真机图里看到的）。 */
   body :is(
-    .ccard, .current-card, .air-card, .day, .chip, .gear, .icon-btn, .search input, .loc-btn,
-    .tool-btn, .compare-tools .tool, .suggest, .hr, .dt, .fz-card, .news-list, .alert-item,
+    .ccard, .current-card, .air-card, .day, .dt, .chip, .gear, .icon-btn, .search input, .loc-btn,
+    .tool-btn, .compare-tools .tool, .suggest, .fz-card, .news-list, .alert-item,
     .rank-row, .rank-loading, .sheet-note, .tabbar, .modal-card,
     .sk-card, .forecast .sk-day) {
     -webkit-backdrop-filter: var(--glass-fx, blur(var(--glass-blur, 0px)) saturate(1.1));

@@ -148,15 +148,29 @@ function renderAlmanac(now) {
     '农历由浏览器内置历法给出，干支与节气按本机推算（算法见 <code>js/lib/almanac.js</code>）。</p>';
 }
 
+/* 上一次画进屏的那一份是「哪一天 + 哪一套生辰」算出来的。
+ * 进板块照旧要重算 —— 应用可能整夜开着，跨天之后干支与运势文案必须换成新的一天；
+ * 但「重算」不等于「重画」：算完的键没变，屏上那三张卡的内容就不可能变，此时把
+ * el.fzDay / el.fzHl / el.fzBazi / el.fzSign 全部 innerHTML 重来一遍是白干的一笔布局。
+ * 键里放的是算出来的干支而不是日期字符串，所以跨节气那个月柱变更也换得动键（数学很便宜：
+ * fourPillars 实测 0.083ms，贵的是 DOM 与布局）。 */
+let 画着 = '';
+
 export function render() {
   const now = new Date();
   const today = dayOf(now);
   const t = fourPillars(now.getFullYear(), now.getMonth() + 1, now.getDate(), 12);
+  const b = readBirth();
+  const iso = localISO(now);
+  const 键 = [t.pillars[0].gz, t.pillars[1].gz, today.gz, today.elem, t.zodiac, iso,
+    b ? b.y + '-' + b.mo + '-' + b.d + '-' + b.s : '无生辰'].join('/');
+  if (键 === 画着) return;
+  画着 = 键;
+
   el.fzDay.innerHTML = '<b>' + (now.getMonth() + 1) + '月' + now.getDate() + '日</b>今日 ' +
     t.pillars[0].gz + '年 ' + t.pillars[1].gz + '月 <b>' + today.gz + '日</b>' +
     '<span class="fz-sub">' + today.elem + ' · 属' + t.zodiac + '</span>';
 
-  const b = readBirth();
   el.fzHl.innerHTML = '';
   el.fzHl.hidden = !!b;      // 一开始人为输入排盘就收起黄历（清空日期即恢复）：那时要看的是自己的盘
   if (!b) {
@@ -169,7 +183,6 @@ export function render() {
   }
   const known = b.s >= 0;
   const r = fourPillars(b.y, b.mo, b.d, known ? REP[b.s] : null);
-  const iso = localISO(now);
   const rel = relation(r.dayMaster, today.elem);
   // 种子只用真实排出的柱：时辰未知时不让一个编出来的时柱参与，也就不会平白多一重吉凶
   const f = dailyFortune(r.pillars.map(p => p.gz).join(''), iso, known ? rel.score - 3 : 0);

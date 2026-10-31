@@ -3,6 +3,7 @@ package com.weatherstudio.app;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.util.Log;
 
 /**
  * 闹钟到点后的落脚点。收广播时进程可能已被杀掉重建，所以这里做两件事，顺序很要紧：
@@ -21,6 +22,9 @@ public class WeatherTickReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(final Context ctx, Intent intent) {
         if (!WeatherKeepAliveService.ACTION_TICK.equals(intent.getAction())) return;
+        /* #34：闹钟渠道的首条读数。只打时刻，不打城市/坐标/URL —— 这行要能回答
+         * 「划掉应用、屏幕灭着，那一拍到底跑没跑、隔多久」，也要能安全留在 logcat 里。 */
+        Log.i("WeatherTick", "alarm fired at " + System.currentTimeMillis());
         final Context app = ctx.getApplicationContext();
         WeatherKeepAliveService.scheduleTick(app);
         final PendingResult res = goAsync();
@@ -29,7 +33,8 @@ public class WeatherTickReceiver extends BroadcastReceiver {
                 try {
                     WeatherKeepAliveService.runTick(app);
                 } catch (Exception e) {
-                    /* 没网 / 中途被杀：下一拍已经排好了，等下一次 */
+                    /* 没网 / 中途被杀：下一拍已经排好了，等下一次。异常 message 常带完整 URL，不打。 */
+                    Log.i("WeatherTick", "tick failed at " + System.currentTimeMillis());
                 } finally {
                     res.finish();
                 }

@@ -70,9 +70,8 @@ export async function query({ city, lat, lon, label, name }, opts) {
     const key = (lat != null && lon != null) ? (lat + ',' + lon) : city;
     const t = await resolveTarget(key, provider, cfg);
     if (label) t.locName = label;
-    // 只认地名的源（墨迹）没有「坐标 → 站」这条路，把手上有的名字都递过去：框里的词、检索给的
-    // 名字、收藏键上那个名字。这三个很可能全是「我的位置」这类占位符 —— 那一源自己会拿坐标
-    // 反查一个它收录的行政区名（见 providers/mojiWeather.js 的 realName），这里不用替它拼。
+    // 只认地名的源没有「坐标 → 站」这条路，把手上有的名字都递过去：框里的词、检索给的
+    // 名字、收藏键上那个名字 —— 三家在用的这一份可能是三者中任何一个，由源自己挑。
     const raw = await provider.weather(t.la, t.lo, city || t.name || name, cfg.key);
     const data = provider.normalize ? provider.normalize(raw) : raw;
     if (mySeq !== querySeq) return;   // 期间已发起更新的查询（如定位竞速里另一路），过期结果直接丢弃
@@ -138,12 +137,12 @@ export function queryByKey(k) {
 }
 
 /* 「我的位置」/「网络定位」太笼统：反查「市 · 区县 · 街道 · 路」补在标题后面（如
- * 「我的位置 · 云浮市 · 新兴县 · 新城镇 · 惠中路」）。挂在 query() 这一层而不是定位那一路，
+ * 「我的位置 · 云浮市 · ××县 · ××镇 · ××路」）。挂在 query() 这一层而不是定位那一路，
  * 是因为启动恢复上次坐标、按坐标收藏、轮播、点 📍 最终都汇到这里 —— 只有这里看得出
  * 「当前标题其实就是一个坐标点」。
  * 不等它：天气先出，地名到了再由 ui.setPlace 重拼，谁先到都不丢（见 ui.js 那段说明）。 */
 function fillPlaceName(lat, lon, locName) {
-  // 占位符名单只有 lib/geo.js 那一份：墨迹挑城市名问的也是它
+  // 占位符名单只有 lib/geo.js 那一份
   if (!isPlaceName(locName)) { ui.setPlace('', ''); return; }   // 搜出来的城市：补字作废
   if (lat == null || lon == null) return;
   ui.setPlace(locName, '');

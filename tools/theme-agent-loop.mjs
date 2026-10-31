@@ -229,11 +229,17 @@ const 现场 = async () => {
       if (好) break;
       if (i === 39) { 记('加载应用', false, '等 16s 页面还没起来。' + (卡 ? '最后一次抛错：' + 卡 : '现场 ' + await 现场())); 收场(209); }
     }
-    记('无头通道', true, 页.title + ' · 411×914 dpr3 · ' + await 评(`return (await fetch('/weather-app/sw.js?n='+Date.now())).text().then(t=>(t.match(/weather-studio-v\\d+/)||['?'])[0]);`));
+    记('无头通道', true, 页.title + ' · 411×914 dpr3（视口是 Emulation 出来的，不是真屏）');
     前缀 = '/weather-app';
     送 = path.resolve(包文件);
   }
 } catch (e) { 记('通道', false, e.message); 收场(209); }
+
+/* 两条通道量的不是同一份代码：无头量的是工作树，device 量的是装进壳里那一份。
+ * 版本号从页面里 fetch 出来，不看仓库里的 sw.js —— 不然「装没装上」这件事永远是猜的。 */
+const 版本 = await 评(`return (await fetch('${前缀}/sw.js?n='+Date.now())).text().then(t=>(t.match(/weather-studio-v\\d+/)||['?'])[0]);`).catch(() => '?');
+结果.版本 = 版本;
+记('被测代码', true, (通道名 === 'device' ? '壳里那一份' : '工作树') + ' · CACHE ' + 版本);
 
 /* ---------- 4. 走真实的 change 事件导入 ---------- */
 const 原主题 = await 评(`return (await import('${前缀}/js/lib/config.js')).loadConfig().theme;`) || '';
@@ -280,6 +286,13 @@ if (现.t !== pkg.id) { 记('切主题', false, 'data-theme 还是 ' + 现.t + '
 /* ---------- 6. 出图 ---------- */
 let 图 = '';
 if (!旗('no-shot')) {
+  /* 先等内容落地再按快门：壳里冷启动那一拍常常还压在骨架屏上，抓下来的图看着完整、其实一片灰块
+   * （2026-10-10 华为那张就是这样）。#result 隐藏 = 还没有数据，见 ui/home.js 的 paintHome。 */
+  let 内容 = false;
+  for (let i = 0; i < 25 && !内容; i++) {
+    内容 = await 评(`const r=document.getElementById('result');return !!r && !r.hidden;`).catch(() => false);
+    if (!内容) await sleep(600);
+  }
   const 锁 = ADB && /isKeyguardShowing=true/.test(壳('dumpsys window'));
   const r = await 发('Page.captureScreenshot', { format: 'png' });
   const buf = r.data ? Buffer.from(r.data, 'base64') : null;
@@ -290,7 +303,9 @@ if (!旗('no-shot')) {
   fs.mkdirSync(path.join(ROOT, 'tests', 'shots'), { recursive: true });
   图 = path.join('tests', 'shots', 'agent-' + pkg.id + '-' + Date.now() + '.png');
   fs.writeFileSync(path.join(ROOT, 图), buf);
-  记('截图', true, 图 + ' · ' + (buf.length / 1024).toFixed(0) + 'KB' + (锁 ? '（⚠ 设备在锁屏，核对观感请解锁后另截）' : ''));
+  记('截图', true, 图 + ' · ' + (buf.length / 1024).toFixed(0) + 'KB · '
+    + (内容 ? '数据已落地' : '⚠ 等了 15s 还没数据，这张是骨架屏（判令牌与装饰够用，判观感不够）')
+    + (锁 ? ' · ⚠ 设备在锁屏，画面可能被 keyguard 挡着' : ''));
   结果.截图 = 图;
 }
 

@@ -111,7 +111,7 @@ function txt(v) {
 }
 const hm = s => { const v = String(s || ''); return v.length >= 16 ? v.slice(11, 16) : ''; };
 
-// 描述保留中国天气原文（"大到暴雨""雨夹雪"），只按文字推图标（表在 lib/weather.js，墨迹也用同一张）
+// 描述保留中国天气原文（"大到暴雨""雨夹雪"），只按文字推图标（表在 lib/weather.js，各家共用同一张）
 
 /* 后台存活那份「配方」（android/WeatherKeepAliveService 按它在没有 WebView 的进程里拼通知）：
  * 只交代往哪个 URL 要报文、通知每一段从报文的哪个路径取值。天气与 AQI 的算法仍只有这一份，
@@ -233,16 +233,32 @@ function normalize(raw) {
   };
 }
 
-/* 天气与 AQI 在同一报文里：查过一次就缓存，别让 loadAir 再打一发一样的请求 */
-let cacheCode = '', cacheRaw = null;
+/* 天气与 AQI 在同一报文里：查过一次就先缓存，别让 loadAir 再打一发一样的请求。
+ * 2026-10-18 之前这里只有**一格**且**永不过期**，两个毛病各对应一件真实的事：
+ * ① 不过期 ⇒ 自动刷新每一拍拿回的都是同一份字节 —— 那一拍于是变成纯重绘 + 纯写盘 + 纯敲原生桥，
+ *    屏上的数却永远不动。用户把间隔调到 15 秒看到的还是第一次那一发，这已经不是费电的问题了。
+ * ② 只留一格 ⇒ 对比与轮播每换一座城就把上一座挤掉，缓存从不命中，N 座城就是 N 发现打的网络请求。
+ * 时限取 60 秒：比 nmc 自己出实况的节奏短一个量级，又足够把「同一轮里天气与空气问的是同一发」
+ * 这一件正事办成；默认的 5 分钟间隔因此每拍都是真数据，只有把间隔调到一分钟以内才会看到去重。
+ * 槽位取 8：对比页最多并排几座城加当前一座，再多就是拿内存换命中率，没有意义。 */
+const STATION_TTL = 60 * 1000, STATION_SLOTS = 8;
+const memo = new Map();          // 站码 -> { raw, at }（Map 的插入序就是最近使用序，淘汰取第一个键）
 async function fetchStation(s) {
-  if (cacheCode === s.code && cacheRaw) return cacheRaw;
+  const hit = memo.get(s.code);
+  /* age 为负也算过期：手机改过系统时间是常事（回归里更是直接把表针拨起来量），
+   * 一份「来自未来」的报文不该被当成还新鲜 —— 那样一次拨表就能把这座城的缓存钉死一小时。 */
+  if (hit) {
+    const age = Date.now() - hit.at;
+    if (age >= 0 && age < STATION_TTL) return hit.raw;
+  }
+  memo.delete(s.code);                                  // 过期的那一格要让位，否则淘汰顺序会被它占着
   const url = API + encodeURIComponent(s.code);
   const raw = await fetchJson(url, 8000);
   if (!raw || !raw.data || !raw.data.real) throw new Error('中国天气网无「' + s.name + '」站点数据');
   // 后台存活要按同一发 URL 自己再取一次报文，所以把 URL 一起挂在报文体上带出去
   raw.__url = url;
-  cacheCode = s.code; cacheRaw = raw;
+  while (memo.size >= STATION_SLOTS) memo.delete(memo.keys().next().value);
+  memo.set(s.code, { raw, at: Date.now() });
   return raw;
 }
 async function resolve(lat, lon, city) {

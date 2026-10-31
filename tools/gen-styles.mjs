@@ -61,6 +61,7 @@ export function parts() {
  * 要过就得连表一起改 —— 目的是让人在改的那一刻看见自己动了什么，不是替它放行。 */
 export const 全局件期望 = {
   '00-theme.css': 5,     // :root（清亮那套令牌）· * · [role="button"] · [hidden] · body —— 全局基座的家
+  '13-transition.css': 1, // html —— 板块推入动画那 22px 的横向溢出只能挂在根元素上裁（overflow-x: clip）
   '17-glass.css': 4,     // 三条 @supports 里的裸 body（玻璃开/关/退回实底）+ 一条给裸文字垫底的 body .news-disc
 };
 

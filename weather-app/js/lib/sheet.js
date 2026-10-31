@@ -1,12 +1,16 @@
-/* 全屏浮层的进出场：`.sheet`（空气排名）与设置弹窗 `.modal` 共用这一套。
+/* 全屏浮层的退场：`.sheet`（空气排名）与设置弹窗 `.modal` 共用这一套。
  *
  * 之前只有进场一段 CSS fade，关闭是「hidden 一瞬没了」—— 用户说的「返回不跟手」主要就在这。
  * 退场动画必须跑完再 hidden，所以统一走这个 helper，而不是各处自己写 setTimeout。
+ * 进场反过来交给 CSS（13-transition.css 的 overlay-in）：面板从 hidden 回到在场时浏览器会自己
+ * 重放它身上的 animation，JS 插手不了这一头，硬写只会多一套要对齐的数值。
  *
  * 只动 opacity 与 transform 两个合成属性，不动 height/top：那两类会触发整页重排。
  * 系统要求「减少动态效果」时直接跳到终态，不播动画。 */
 
 const OUT_MS = 150;
+/* 这一对就是 CSS overlay-in 的反向（同一组 9px / .99），改一处要同时改另一处，
+ * 否则进出场各走各的曲线，看着像两个面板。 */
 const OUT = [{ opacity: 1, transform: 'none' }, { opacity: 0, transform: 'translateY(9px) scale(.99)' }];
 
 function wantsReduced() {

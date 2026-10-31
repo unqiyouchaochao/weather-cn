@@ -115,6 +115,13 @@ function loadChannel(ch) {
   });
 }
 
+/** 只问缓存、一个请求都不发。给得出对象就说明这一份还在 TTL 里，
+ *  视图层拿它比对「屏上画的是不是这批」，从此两边共用同一个新鲜度判据，不各算各的。 */
+export function peek(id) {
+  const hit = cache[id];
+  return hit && Date.now() - hit.at < TTL ? hit : null;
+}
+
 /**
  * @returns {Promise<{items:Array, src:string, fromCache:boolean}>}
  * 失败时 reject，错误对象带 .needsNative 标记，供界面说明「这一栏只在手机 App 内可用」。

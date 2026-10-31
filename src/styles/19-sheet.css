@@ -15,12 +15,9 @@
   /* 整块自己不滚：滚动只许发生在 .sheet-body 那一层（与 .modal-card 同一套三段式）。
      少了这一条，标题/返回/排序会跟着 360 行一起滚走，滚到深处屏上就没有出口了。 */
   overflow: hidden;
-  /* 进场：从下方抬 14px 淡入。退场不在这里 —— 那是 lib/sheet.js 用 WAAPI 播的，
-     因为「必须等动画跑完才能 hidden」这件事只有 JS 知道，写在 CSS 里会两头对不上。 */
-  animation: sheet-in .22s cubic-bezier(.22, .72, .3, 1) both;
+  /* 进出场不在这里：那一段与板块切换共用（进场见 13-transition.css 的 overlay-in，退场见 js/lib/sheet.js）。
+     退场必须等动画跑完才能 hidden，这件事只有 JS 知道，写在 CSS 里会两头对不上。 */
 }
-@keyframes sheet-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 /* 用 data-sheet 属性而不是 body 类：body 的类名这一层以前被 ui.applyBg() 每次刷新整体重写，
    挂在类上的东西会被它抹掉。（2026-10-04 起 applyBg 改写 data-weather，类名已经腾出来了，
    但这条不改：属性选择器与主题的 data-theme 同一风格，也没必要为一件没坏事的东西再动一次。） */

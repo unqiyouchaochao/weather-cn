@@ -8,8 +8,8 @@
  *
  * 用法：node tools/run-checks.mjs [url]     输出每条断言的名字/结果/实测，退出码 = 失败条数
  */
-import { spawn } from 'node:child_process';
-import { existsSync, rmSync, mkdirSync, readdirSync } from 'node:fs';
+import { spawn, execSync } from 'node:child_process';
+import { existsSync, rmSync, mkdirSync, readdirSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
@@ -36,6 +36,29 @@ const BUDGET_MS = +(process.env.CHECKS_BUDGET || 420000);
 /* 配置文件目录放系统 temp：它只活这一次，留在仓库里就是 git status 里一堆噪音 */
 const PROFILE = join(tmpdir(), 'weather-checks-' + process.pid);
 
+/* 上一轮被硬杀时 profile 会留下；按 PID 判活，只清死进程的目录，活进程的不碰。 */
+function pidAlive(pid) {
+  try { process.kill(pid, 0); return true; }
+  catch (e) { return e.code !== 'ESRCH'; }
+}
+function sweepStaleProfiles() {
+  let names = [];
+  try { names = readdirSync(tmpdir()); } catch { return; }
+  for (const name of names) {
+    const m = /^weather-checks-(\d+)$/.exec(name);
+    if (!m) continue;
+    const dir = join(tmpdir(), name);
+    const pid = Number(m[1]);
+    let old = false;
+    try { old = Date.now() - statSync(dir).mtimeMs > 6 * 3600 * 1000; } catch { continue; }
+    /* PID 会被系统复用：不能只看进程活不活；超过 6 小时的 profile 一定不属于本轮跑批
+       （run-checks 的墙钟硬顶是 600s），按年龄也清掉。 */
+    if (!old && (!pid || pid === process.pid || pidAlive(pid))) continue;
+    try { rmSync(dir, { recursive: true, force: true }); } catch {}
+  }
+}
+sweepStaleProfiles();
+
 if (!EDGE) { console.error('找不到 Edge/Chrome（EDGE_BIN 可以显式指定路径）'); process.exit(90); }
 rmSync(PROFILE, { recursive: true, force: true });
 mkdirSync(PROFILE, { recursive: true });
@@ -47,7 +70,18 @@ const chrome = spawn(EDGE, [
   `--remote-debugging-port=${PORT}`, `--user-data-dir=${PROFILE}`, 'about:blank',
 ], { stdio: 'ignore' });
 
-const stop = () => { try { chrome.kill(); } catch {} try { execSync('taskkill /F /IM msedge.exe /T >/dev/null 2>&1'); } catch {} };
+let stopped = false;
+const stop = () => {
+  if (stopped) return;
+  stopped = true;
+  /* 只杀自己启动的这棵进程树。原先写的是 /IM msedge.exe：它依赖一个从未 import 的
+     execSync，实际是死代码；就算补上 import，也会把同机其它 Edge / 跑批一起带走。 */
+  if (process.platform === 'win32' && chrome.pid) {
+    try { execSync(`taskkill /F /PID ${chrome.pid} /T`, { stdio: 'ignore' }); } catch {}
+  }
+  try { chrome.kill(); } catch {}
+  try { rmSync(PROFILE, { recursive: true, force: true }); } catch {}
+};
 process.on('exit', stop);
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));

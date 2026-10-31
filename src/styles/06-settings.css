@@ -14,6 +14,30 @@
 .chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--ink); background: var(--field-bg); min-height: 30px; }
 .chip input { margin: 0; }
 
+/* ---------- 自动刷新：数值 + 单位 + 右边那颗开关 ----------
+ * 两态的配色一律复用已经过 AA 扫过的配对，不新造第三组没人量过的组合：
+ *  关 = --ink 压 --field-bg（与上面 .chip 同一对）
+ *  开 = --hero-ink 压 --brand（与「保存并应用」那颗主按钮同一对）
+ * 允许换行：411px 那一档「标签 + 数值 + 单位 + 开关」一行装不下，装不下就整颗开关掉到下一行，
+ * 而不是把数值框挤成 20px 或者让这一行横向溢出。 */
+/* 选择器都挂在 #refreshField 上，不是为了好看：`.field input, .field select { width: 100% }`
+ * 是 (0,1,1)，单挂一个类的 .refresh-num 是 (0,1,0) —— 量不到也报错不了，浏览器实测就是
+ * 「数值框被拉满整行、5 这个数字孤零零贴在右边」，第二行只剩单位和开关。 */
+#refreshField { flex-wrap: wrap; }
+#refreshField > span { flex: 1 0 100%; }
+#refreshField .refresh-num { flex: 0 0 auto; width: 76px; text-align: right; }
+#refreshField .refresh-unit { flex: 1 1 90px; width: auto; }
+#refreshField .switch { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 34px;
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  background: var(--field-bg); color: var(--ink); font-size: 12px; }
+#refreshField .switch .sw-ic { display: inline-flex; width: 20px; height: 20px; }
+#refreshField .switch[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--hero-ink); }
+/* 关着时数值与单位两格是 disabled 的（behavior.js 写的），但浏览器不会自己把禁用输入框画灰 ——
+ * 看着能改、点下去没反应，比摆一个灰开关更坏。这里不用 opacity：半透一层压出来的是一对
+ * 从没量过的复合色（而且 AA 断言量不到它）。改成直接取 --muted 这一档已有的次要文字色，
+ * 并把「--muted 压 --field-bg」这一对逐主题纳入那条 AA 断言。 */
+#refreshField :disabled { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
+
 
 /* ---------- 主题插件列表 ---------- */
 .plugin-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 2px; }

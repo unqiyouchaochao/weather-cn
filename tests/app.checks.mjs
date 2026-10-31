@@ -198,7 +198,7 @@ push('背景那一栏的十个控件与 #bgLayer 整节点不在 DOM 里（是�
     return { m, c, 落盘: JSON.parse(localStorage.getItem(KEY) || 'null') || {},
       照片还在: localStorage.getItem(PHOTO) !== null };
   };
-  const v2 = await 跑一遍({ defVer: 2, provider: 'moji', theme: 'dark', key: 'abc-123', units: { temp: 'F' },
+  const v2 = await 跑一遍({ defVer: 2, provider: 'open-meteo', theme: 'dark', key: 'abc-123', units: { temp: 'F' },
     bg: { mode: 'photo', id: 'dusk', chip: 12 } });
   const v1 = await 跑一遍({ defVer: 1, provider: 'open-meteo', theme: 'mint' });
   const 新装 = await 跑一遍(null);
@@ -207,29 +207,34 @@ push('背景那一栏的十个控件与 #bgLayer 整节点不在 DOM 里（是�
    * 这一支修复每次都跑、不落盘，也不该落盘 —— 它只把「查无此 id」换成同侧默认，用户挑过且还在的原样留。
    * 上面 v2 那一跑的 theme 因此换成了还活着的 'dark'：它才是「挑过的没被动」那一条该用的样子，
    * 拿一个已经不存在的 id 来验「没被动」，验的是迁移会不会偷偷改写，而不是它改对了没有。 */
-  const 删过的深 = await 跑一遍({ defVer: 3, provider: 'moji', theme: 'ocean', darkTheme: 'oled', lightTheme: 'sunset' });
+  const 删过的深 = await 跑一遍({ defVer: 3, provider: 'wttr-in', theme: 'ocean', darkTheme: 'oled', lightTheme: 'sunset' });
   const 删过的浅 = await 跑一遍({ defVer: 3, theme: 'bridal', lightTheme: 'paper' });
+  const 老墨迹 = await 跑一遍({ defVer: 3, provider: 'moji' });
   const 默认源 = v2.m.DEFAULT_CFG.provider;
-  const 挑过的没被动 = v2.落盘.provider === 'moji' && v2.落盘.theme === 'dark' && v2.落盘.key === 'abc-123' &&
+  const 默认版本 = v2.m.DEFAULT_CFG.defVer;
+  const 挑过的没被动 = v2.落盘.provider === 'open-meteo' && v2.落盘.theme === 'dark' && v2.落盘.key === 'abc-123' &&
     v2.c.units.temp === 'F';
   const 背景清干净 = v2.c.bg === undefined && !('bg' in v2.落盘) && v2.照片还在 === false;
   const 该吃默认的时候才吃 = v1.落盘.provider === 默认源 && 新装.落盘.provider === 默认源 &&
-    v2.落盘.defVer === 3 && v1.落盘.defVer === 3;
+    v2.落盘.defVer === 默认版本 && v1.落盘.defVer === 默认版本;
   /* 复原现场：这套 localStorage 是跑批与用户共用的，别把假城市留给后面的断言 */
   if (原样 === null) localStorage.removeItem(KEY); else localStorage.setItem(KEY, 原样);
   if (原本照片 === null) localStorage.removeItem(PHOTO); else localStorage.setItem(PHOTO, 原本照片);
-  push('升 v3 只清背景（cfg.bg 与照片键），用户挑过的数据源/主题/密钥/单位一个字都不许动',
+  push('迁移到 v5：清背景、下架墨迹源，用户还活着的选择一个字都不许动',
     挑过的没被动 && 背景清干净 && 该吃默认的时候才吃,
     'v2 老用户：源=' + v2.落盘.provider + ' 主题=' + v2.落盘.theme + ' 密钥=' + (v2.落盘.key || '(丢)') +
     ' 单位=' + v2.c.units.temp + '｜cfg.bg=' + JSON.stringify(v2.c.bg) + ' 落盘还留 bg=' + ('bg' in v2.落盘) +
     ' 照片键还在=' + v2.照片还在 + '｜v1→源=' + v1.落盘.provider + '，新装→源=' + 新装.落盘.provider +
     '（默认 ' + 默认源 + '），defVer=' + v2.落盘.defVer + '/' + v1.落盘.defVer);
+  push('已下架的墨迹源在迁移时落回默认源，设置面板不回填一个不存在的选项',
+    老墨迹.c.provider === 默认源,
+    '墨迹→' + 老墨迹.c.provider + '（默认 ' + 默认源 + '）');
   /* 这一条钉的是上面那一步「查无此 id 就换同侧默认」：深色侧删过的不许一觉醒来变成浅色，
    * 记账位（darkTheme/lightTheme）跟着清空，否则 ☀/ 第一下会跳去一个已经不存在的配色。 */
   push('存过的主题 id 已不在清单里：落到同明暗侧的默认套，记账位清空，用户还活着的选择不受影响',
     删过的深.c.theme === 'dark' && 删过的深.c.darkTheme === null && 删过的深.c.lightTheme === null &&
     删过的浅.c.theme === 'mint' && 删过的浅.c.lightTheme === null &&
-    删过的深.c.provider === 'moji' && v2.c.theme === 'dark',
+    删过的深.c.provider === 'wttr-in' && v2.c.theme === 'dark',
     'ocean→' + 删过的深.c.theme + '（记账 ' + 删过的深.c.darkTheme + '/' + 删过的深.c.lightTheme + '）' +
     '｜bridal→' + 删过的浅.c.theme + '｜还活着的 dark→' + v2.c.theme +
     '｜源没被顺手打回默认：' + 删过的深.c.provider);
@@ -940,7 +945,7 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   pushAnims();
   await sleep(60);
   openBtn.click();
-  await sleep(120);
+  await sleep(300);                      // v152 的 .modal 有 220ms 的 overlay-in，等它跑完再读透明度
   const opA = getComputedStyle(modal).opacity;
   const hitA = cardCenter();
   push('关一次之后再打开，面板不是透明的（退场动画的 fill 不能留在元素上）',
@@ -1216,336 +1221,15 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   delete window.Capacitor;
 }
 
-/* ---------- 坐标 → 能拿去查天气的地名 ----------
- * 「我的位置」不是地名。2026-09-29 真机上选中墨迹之后屏上一动不动，就是因为把这四个字
- * 原样递给了一个只认地名的源。这一条钉住「反查链里哪几段可以当城市名用」：
- * 区县排在市前面，镇/街道/路一律不要 —— 镇名会把检索带到别省的同名镇上去，
- * 省名更是要把省府的天气当用户脚下的。 */
+/* ---------- 占位标题不是地名 ----------
+ * 「我的位置」「网络定位」只当标题占位符；拿它去问只认地名的源必然「没有收录」。
+ * v152 下墨迹源已整源下架，反查链不再需要 placeCandidates，只留这条仍然生效的判据。 */
 {
   const geo = await import('/weather-app/js/lib/geo.js');
-  const a = geo.placeCandidates('云浮市 · 新兴县 · 新城镇 · 惠中路');
-  push('反查链里只留区县级与地级市级，且区县排在市前面',
-    a.names.join(',') === '新兴县,云浮市' && a.hint.length === 4,
-    '候选=' + JSON.stringify(a.names) + '，整链=' + JSON.stringify(a.hint));
-
-  const b = geo.placeCandidates('北京市 · 朝阳区 · 建外街道 · 建国路');
-  const c = geo.placeCandidates('广东省 · 云浮市 · 云城区 · 南门路');
-  const d = geo.placeCandidates('');
-  push('同名不同省要靠整条链当线索：hint 里留着「北京市」，才有得比',
-    b.names.join(',') === '朝阳区,北京市' && b.hint.indexOf('北京市') >= 0 &&
-    c.names.join(',') === '云城区,云浮市' && c.names.indexOf('广东省') < 0 &&
-    d.names.length === 0,
-    '直辖市=' + JSON.stringify(b.names) + '，带省=' + JSON.stringify(c.names) + '，空串=' + JSON.stringify(d.names));
-
   push('占位标题只有那两种，别的名字不许当占位符（否则搜出来的城市会被再反查一次改掉标题）',
     geo.isPlaceName('我的位置') === true && geo.isPlaceName('网络定位') === true &&
     geo.isPlaceName('新兴县') === false && geo.isPlaceName('') === false,
     '我的位置=' + geo.isPlaceName('我的位置') + '，新兴县=' + geo.isPlaceName('新兴县'));
-}
-
-/* ---------- 墨迹天气：只测解析与「仅手机」那道闸 ----------
- * 它的接口不放行浏览器跨域（实测一个 access-control-* 头都没有），网络那一半只能在真机验；
- * 这里喂的是 `tests/fixtures/moji-*` —— 2026-10-12 起它们是**合成夹具**（容器/类名/文本形状
- * 与诱饵照真页重建，数值与当初抓到的真字节一致），不再放别人站点的整页 HTML。 */
-{
-  const mj = await import('/weather-app/js/providers/mojiWeather.js');
-  const { providerNativeOnly, providerBackground, providerGivesAlerts, getProvider } = await import('/weather-app/js/providers/index.js');
-  const html = await (await fetch('/tests/fixtures/moji-city.html')).text();
-  const hourTxt = await (await fetch('/tests/fixtures/moji-hour24.json')).text();
-  const page = mj.parsePage(html);
-  push('墨迹城市页解析：实况、今起三天、AQI、预警都取到，标题里的城市也拿回来了',
-    page.city === '新兴县' && page.temp === 26 && page.humidity === 90 &&
-    page.days.length === 3 && page.days[0].hi === 35 && page.days[0].lo === 25 &&
-    page.aqi === 20 && page.warn === '高温 黄色',
-    JSON.stringify({ city: page.city, t: page.temp, hum: page.humidity, n: page.days.length,
-      d0: page.days[0] && (page.days[0].lo + '/' + page.days[0].hi), aqi: page.aqi, warn: page.warn }));
-
-  const byDay = mj.parseHour24(hourTxt);
-  const k0 = Object.keys(byDay).sort()[0];
-  const hs = byDay[k0] || [];
-  const asc = hs.every((h, i) => i === 0 || hs[i - 1].time < h.time);
-  push('墨迹逐小时：按天分组、时刻严格递增、0 点的「晴」换成月牙图标（夜间不许出太阳）',
-    k0 === '2026-09-28' && hs.length === 24 && asc &&
-    hs[0].time === '2026-09-28T00:00' && hs[0].icon === 'night' && hs[23].time === '2026-09-28T23:00',
-    '键=' + k0 + '，条数=' + hs.length + '，递增=' + asc + '，首格=' + hs[0].time + '/' + hs[0].icon +
-    '，末格=' + (hs[23] || {}).time);
-
-  const std = mj.mojiWeather.normalize({ __page: page, __hour: byDay, __city: { name: '新兴县' }, __name: '新兴县' });
-  push('归一化之后：此刻按源的滚动窗口反推，缺的降水量必须是 null（不许退成 0 骗人「今天没雨」）',
-    std.current.time === '2026-09-27T23:00' &&
-    std.daily.map(d => d.date).join(',') === '2026-09-27,2026-09-28,2026-09-29' &&
-    std.daily.every(d => d.precip === null && d.precipProb === null) &&
-    !!std.alert && std.alert.rank === 2 && std.air && std.air.aqi === 20,
-    'time=' + std.current.time + '，天=' + std.daily.map(d => d.date).join(',') +
-    '，降水=' + JSON.stringify(std.daily.map(d => d.precip)) +
-    '，预警=' + (std.alert ? std.alert.name + '/' + std.alert.levelName + '/rank' + std.alert.rank : '无') +
-    '，AQI=' + (std.air ? std.air.aqi : '无'));
-
-  /* 墨迹只给「东南风2级」这种文本，wind 是 null。界面上那一格原先写死 fmtWind(c.wind)，
-   * 于是选中墨迹之后屏上是「风 --」—— 源明明给了，是我们的字段模型把它丢了。
-   * 原样搬那串文本可以，替它算一个 km/h 不行（2 级是 1.6~3.3 m/s 一个区间，不是一个值）。 */
-  const cfgM = await import('/weather-app/js/lib/config.js');
-  const wt = std.current.windText;
-  push('风：源只给文本（几级风）时原样显示，不许显示成 --；给了数字才按单位偏好换算',
-    std.current.wind === null && /风.*级/.test(wt || '') &&
-    cfgM.windLabel(std.current) === wt &&
-    cfgM.windLabel({ wind: 7.2 }) === cfgM.fmtWind(7.2) && cfgM.windLabel({}) === '--',
-    'wind=' + JSON.stringify(std.current.wind) + '，windText=' + JSON.stringify(wt) +
-    '，界面=' + cfgM.windLabel(std.current) + '，数字=' + cfgM.windLabel({ wind: 7.2 }));
-
-  /* 预警卡顶上那行出处以前写死「中央气象台 · 中国天气」：选中墨迹之后，那条信号是墨迹页给的，
-   * 出处却挂着别人家的名字 —— 数字没错、出处错了，在这一屏上同样是骗人（宁缺勿错）。 */
-  const ui = await import('/weather-app/js/ui.js');
-  const alerts = await import('/weather-app/js/lib/alerts.js');
-  const scope = () => document.getElementById('alertScope').textContent;
-  ui.renderAlerts({ alert: std.alert }, false, 'moji');
-  const mojiScope = scope();
-  const nmcAlert = alerts.fromWarn({ signaltype: '暴雨', signallevel: '黄色',
-    issuecontent: '这一点在测试里不会真的弹通知', url: '/publish/alarm/44010041600000_20260929084142.html' }, '广州');
-  ui.renderAlerts({ alert: nmcAlert }, false, 'nmc');
-  const nmcScope = scope();
-  push('预警卡那行出处跟着「发这条信号的源」走，不许统一挂成中央气象台',
-    mojiScope === '墨迹天气发布' && nmcScope === '中央气象台 · 中国天气',
-    '墨迹=' + mojiScope + '，中国天气=' + nmcScope);
-  ui.clearAlerts();
-
-  push('墨迹标了 nativeOnly，浏览器里那一枚选项必须 disabled（选中它必然拿不到数）',
-    providerNativeOnly('moji') === true && providerNativeOnly('nmc') === false,
-    'moji=' + providerNativeOnly('moji') + '，nmc=' + providerNativeOnly('nmc'));
-
-  /* 凡是「要坐标」的源都得自带一条 城市名→坐标 的路：query.js 里那句 `await provider.geocode(key)`
-   * 只被 try/catch 兜着，缺了它，屏幕上就是 `provider.geocode is not a function` 这种内部错 ——
-   * 2026-09-29 选中墨迹之后在框里打「郑州」回车，看到的就是这句（那一版 geocode 还是 null）。 */
-  const noGeo = ['open-meteo', 'nmc', 'wttr-in', 'moji'].filter(id => {
-    const p = getProvider({ provider: id });
-    return !p.cap.byCityName && typeof p.geocode !== 'function';
-  });
-  push('每一个「靠坐标取数」的源都必须有检索器，否则用户打城市名时看到的是内部错',
-    noGeo.length === 0, '缺检索器的源=' + JSON.stringify(noGeo));
-
-  const sel = document.getElementById('providerSel');
-  const opt = sel && [].slice.call(sel.options).find(o => o.value === 'moji');
-  sel.value = 'moji';
-  sel.dispatchEvent(new Event('change'));
-  await sleep(120);
-  /* 原来这一条读的是 #providerNote —— 那段说明已经搬进「软件声明」这一组的第一条，
-   * 所以判据改到 .disc[data-d=source] 上。搬走不等于不验：这一条还在原地拦「浏览器里选了只给壳的源」。
-   * 正则原来是 /手机|App/，那是个空门：源名「墨迹天气（逆向，仅手机 App）」和 note 里都自带 App，
-   * 就算「浏览器里用不了」那一句整个不渲染，它也照样绿。改成要那句**对着当前环境说的那句话**
-   * （这里 native=false，说的是「在浏览器里选中它必然报错」）。 */
-  const discOf = id => {
-    const d = document.querySelector('#discList .disc[data-d="' + id + '"]');
-    return d ? d.textContent.replace(/\s+/g, ' ') : '(没有这一条)';
-  };
-  push('在浏览器里选中它：选项变灰，声明要按「当前在浏览器里」这句口径讲',
-    !!opt && opt.disabled === true && /在浏览器里选中它必然报错|只能在手机 App 里用/.test(discOf('source')),
-    'disabled=' + (opt ? opt.disabled : '没有这一项') + '，声明=' + discOf('source').slice(0, 56));
-
-  /* 设置里通知与预警那两行说明必须跟着「当前选中的源」改口。判据在注册表那两个位上
-   * （cap.background / cap.alert），不是散在文案里的字符串 —— 墨迹给得出预警，但给不出
-   * 后台那份 JSON 配方，所以前一句要说「只在打开应用时核对」；换成 Open-Meteo 那种干脆
-   * 不给预警的源，又要说「这一栏不会出现」。 */
-  const realCap0 = window.Capacitor;
-  // alertSupported() 问的还是那一个 WeatherNotify 插件（它有 alert 方法），不是另开一个插件
-  window.Capacitor = { isNativePlatform: () => true, Plugins: { WeatherNotify: {
-    show() {}, clear() {}, keepAlive() { return Promise.resolve(); }, alert() { return Promise.resolve({}); }
-  } } };
-  const nh = () => document.getElementById('notifyHint').textContent;
-  const ah = () => document.getElementById('alertHint').textContent;
-  const say = id => { sel.value = id; sel.dispatchEvent(new Event('change')); };
-  say('moji'); await sleep(120);
-  push('选中墨迹：后台那一路停用要说在通知/预警的说明里，但预警本身照旧（它城市页里就带一条）',
-    /给不出后台|不再自取/.test(nh()) && /划掉应用后不再自取/.test(ah()) &&
-    providerBackground('moji') === false && providerGivesAlerts('moji') === true,
-    '通知=' + nh().slice(0, 30) + '…预警=' + ah().slice(0, 40));
-  say('open-meteo'); await sleep(120);
-  push('换成不给预警的源：说明要直说这一栏不会出现，不许留一句「跟着报文一起核对」骗人',
-    /不会出现|不给/.test(ah()) && providerGivesAlerts('open-meteo') === false,
-    ah().slice(0, 44));
-  say('nmc'); await sleep(120);
-  push('切回「中国天气」：后台每小时自取、每 10 分钟盯预警这两句要回得来',
-    /每小时自取一次/.test(nh()) && /每 10 分钟自取一次/.test(ah()),
-    '通知=' + nh().slice(0, 30) + '…预警=' + ah().slice(0, 40));
-  if (realCap0 === undefined) delete window.Capacitor; else window.Capacitor = realCap0;
-  sel.value = 'nmc';
-  sel.dispatchEvent(new Event('change'));
-  await sleep(120);
-}
-
-/* ---------- 墨迹的失败路径：它骗人的方式比「解析不出来」多 ----------
- * 上面几条只证明「字节能解析」。真正会拿别处的数糊在本城卡上的，是这四种：
- *   ① 过载时它回 **200 + 正文 Server is busy**（按状态码判是判不出来的）；
- *   ② 防火墙拦了回 **418**；
- *   ③ 检索把「新兴县」回成浙江的「**新昌县**」（同名不同省，取第一条就是拿错城）；
- *   ④ 城市页本身给的是**另一座城**（标题里的名字对不上）。
- * 浏览器里这一源本该直接抛「只能在手机 App 里用」，所以这里挂一个假 CapacitorHttp
- * （isNative() 只认 window.Capacitor，与桌面图标那两条同一套路），请求全部按表回答。 */
-{
-  const mj = await import('/weather-app/js/providers/mojiWeather.js');
-  const html = await (await fetch('/tests/fixtures/moji-city.html')).text();
-  const hourTxt = await (await fetch('/tests/fixtures/moji-hour24.json')).text();
-  // 下面三份的形状取自 2026-09-29 真机壳里抓下来的那三张原页（省表 13.8KB、广东省城市表
-  // 70.9KB、以及「按中文路径取城市页」实际拿到的那张 p404 模板），2026-10-12 起夹具本身是
-  // 照那些形状重建的合成页 —— 索引页的形状仍以真页为准，只是不再把别人整页 HTML 存进仓库
-  const provHtml = await (await fetch('/tests/fixtures/moji-provinces.html')).text();
-  const cityHtml = await (await fetch('/tests/fixtures/moji-cities-guangdong.html')).text();
-  const p404Html = await (await fetch('/tests/fixtures/moji-p404.html')).text();
-  const realCap = window.Capacitor;
-  let asked = [], table = [];
-  window.Capacitor = {
-    isNativePlatform: () => true,
-    Plugins: { CapacitorHttp: { get: o => {
-      asked.push(o);
-      const hit = table.filter(t => String(o.url).indexOf(t.has) >= 0)[0];
-      return Promise.resolve(hit ? { status: hit.status, data: hit.data, headers: hit.headers || {} } : { status: 404, data: '' });
-    } } }
-  };
-  const cityJson = (name, id, pname) => JSON.stringify({ city_list: [{ cityId: 1, id: id, name: name, pname: pname || '广东省', counname: '中国' }] });
-  // 反查那一步换成假的（真跑是两次公网往返，结果还取决于当天 OSM 的数据）；
-  // 三份缓存（城市 id / 省表 / 一省一份的城市表）都要清，否则第二个用例直接用上下一个城市的地址
-  const FIXED = { names: ['新兴县', '云浮市'], hint: ['云浮市', '新兴县', '新城镇', '惠中路'] };
-  const run = async (tbl, name, la, lo, cand) => {
-    ['weather-moji-city', 'weather-moji-prov', 'weather-moji-url'].forEach(k => localStorage.removeItem(k));
-    mj.usePlaceNames(() => Promise.resolve(cand || FIXED));
-    table = tbl; asked = [];
-    try { return { ok: true, raw: await mj.mojiWeather.weather(la == null ? 23.1 : la, lo == null ? 112.2 : lo, name) }; }
-    catch (e) { return { ok: false, why: String(e && e.message || e) }; }
-  };
-  const urlOf = frag => decodeURIComponent(String((asked.filter(a => String(a.url).indexOf(frag) >= 0)[0] || {}).url || '(没发过这一发)'));
-  // 省表这一发故意回一次 301（实测 CapacitorHttp 不自己跟），第二发才给真表 —— 顺带盯住那条跟法
-  const GOOD = [
-    { has: '/api/citysearch', status: 200, data: cityJson('新兴县', 1016) },
-    { has: '/weather1/china/', status: 200, data: provHtml },
-    { has: '/weather1/china', status: 301, headers: { Location: 'https://tianqi.moji.com/weather1/china/' } },
-    { has: '/weather/china/guangdong/xinxing-county', status: 200, data: html },
-    { has: '/weather/china/guangdong', status: 200, data: cityHtml },
-    { has: '/index/getHour24', status: 200, data: hourTxt }
-  ];
-  try {
-    const busy = await run([{ has: '/api/citysearch', status: 200, data: 'Server is busy, please try it later.ErrCode:81-24-501' }], '新兴县');
-    push('墨迹回 200 但正文是「Server is busy」时必须报错，不许把这句话当数据解析',
-      busy.ok === false && /Server is busy/.test(busy.why), busy.ok ? '居然成功了' : busy.why);
-
-    const waf = await run([{ has: '/api/citysearch', status: 418, data: '访问被拦截' }], '新兴县');
-    push('墨迹防火墙拦下来（418）要写清是防火墙拦的，不能退成一条「HTTP 418」了事',
-      waf.ok === false && /418/.test(waf.why) && /拦截|防火墙|WAF/.test(waf.why), waf.ok ? '居然成功了' : waf.why);
-
-    const lookalike = await run([{ has: '/api/citysearch', status: 200, data: cityJson('新昌县', 5000) }], '新兴县');
-    push('检索只回「新昌县」时不许当成「新兴县」（同名不同省，认不出就报错）',
-      lookalike.ok === false && /没有收录/.test(lookalike.why), lookalike.ok ? '居然拿 5000 当新兴县用了' : lookalike.why);
-
-    /* 索引页那两发（省表 + 一省一份的城市表）每条用例都带着，只有被测的那一发按用例换掉。
-     * 顺序很重要：表是按「URL 里含哪段」第一条命中就算数，所以更具体的那条必须排在前面。 */
-    const IDX = [
-      { has: '/weather1/china/', status: 200, data: provHtml },
-      { has: '/weather1/china', status: 301, headers: { Location: 'https://tianqi.moji.com/weather1/china/' } },
-      { has: '/weather/china/guangdong/xinxing-county', status: 200, data: html },
-      { has: '/weather/china/guangdong', status: 200, data: cityHtml },
-      { has: '/index/getHour24', status: 200, data: hourTxt }
-    ];
-    const GOOD = [{ has: '/api/citysearch', status: 200, data: cityJson('新兴县', 1016) }].concat(IDX);
-    // 城市页真正请求过哪条地址（省索引那种一段的不算）
-    const pageUrls = () => asked.map(a => decodeURIComponent(String(a.url))).filter(u => /\/weather\/china\/[a-z'-]+\/[a-z'-]+$/.test(u));
-
-    const wrongPage = await run([
-      { has: '/api/citysearch', status: 200, data: cityJson('新兴县', 1016) },
-      { has: '/weather/china/guangdong/xinxing-county', status: 200, data: html.replace('【新兴县天气】', '【郑州天气】') }
-    ].concat(IDX), '新兴县');
-    push('城市页标题给的是另一座城时必须拦下来，不许把别城的报文画在本城卡上',
-      wrongPage.ok === false && /郑州/.test(wrongPage.why) && /不是/.test(wrongPage.why),
-      wrongPage.ok ? '居然成功了' : wrongPage.why);
-
-    /* 真机量到的那一种最坏的失败：路径不对时它回 **200 + p404 模板**，状态码一切正常，
-     * 于是界面画成一张「全 --」的空屏 —— 看着像「今天没数据」，其实这一路已经坏了。 */
-    const emptyPage = await run([
-      { has: '/api/citysearch', status: 200, data: cityJson('新兴县', 1016) },
-      { has: '/weather/china/guangdong/xinxing-county', status: 200, data: p404Html }
-    ].concat(IDX), '新兴县');
-    push('墨迹回 200 但那一页里没有天气（真机那次是一张 p404 模板）时必须报错，不许画一张全 -- 的空屏',
-      emptyPage.ok === false && /没有天气数据/.test(emptyPage.why), emptyPage.ok ? '居然成功了' : emptyPage.why);
-
-    const badIndex = await run([
-      { has: '/api/citysearch', status: 200, data: cityJson('新兴县', 1016) },
-      { has: '/weather1/china', status: 200, data: '<html>改版了，一条链接都没有</html>' }
-    ].concat(IDX), '新兴县');
-    push('省索引读不出任何省份时要明确说「页面改版了」，不能退成「这个城市没有」',
-      badIndex.ok === false && /读不出省份/.test(badIndex.why), badIndex.ok ? '居然成功了' : badIndex.why);
-
-    const good = await run(GOOD, '新兴县');
-    const h = asked.length ? asked[asked.length - 1] : {};
-    const hdr = h.headers || {};
-    push('这一串请求真的按墨迹的要求发出去：浏览器 UA + 自拼的 internal_id cookie + 从它自己的两级索引页读出来的 slug 地址',
-      good.ok === true && good.raw.__city.id === 1016 &&
-      asked.length === 6 && /Mozilla\/5\.0/.test(hdr['User-Agent'] || '') &&
-      hdr.Cookie === 'moji_setting=%7B%22internal_id%22%3A1016%7D' &&
-      pageUrls().join(',') === 'https://tianqi.moji.com/weather/china/guangdong/xinxing-county',
-      '发 ' + asked.length + ' 次（含省索引那一次 301 跟随），UA=' + String(hdr['User-Agent'] || '').slice(0, 18) +
-      '…，Cookie=' + (hdr.Cookie || '(无)') + '，城市页=' + pageUrls().join(' | '));
-
-    /* 下面这几条都是 2026-09-29 真机那一次「选中墨迹、屏上一动不动」补出来的：
-     * 递过去的名字是收藏键上的占位符「我的位置」，墨迹按名取数必然认不出。 */
-    const blind = await run(GOOD, '我的位置');
-    push('目标是个坐标点（收藏键上只有「我的位置」）时，先反查这一带的地名再去取数，而不是报「没有收录」',
-      blind.ok === true && blind.raw.__name === '新兴县' &&
-      decodeURIComponent(String(asked[0].url)).indexOf('citysearch/新兴县') >= 0 &&
-      String(asked[0].url).indexOf('我的位置') < 0,
-      (blind.ok ? '取到的城市=' + blind.raw.__name : blind.why) + '，第一发=' + decodeURIComponent(String(asked[0] ? asked[0].url : '(无)')));
-
-    const nowhere = await run(GOOD, '我的位置', 23.1, 112.2, { names: [], hint: [] });
-    push('反查不出地名时要明确说「反查不出」，不许悄悄退到「最像的那个城市」',
-      nowhere.ok === false && /反查不出地名/.test(nowhere.why), nowhere.ok ? '居然成功了' : nowhere.why);
-
-    // 同一个名字在两个省都有（北京朝阳区 / 吉林朝阳区）：反查链上的「北京市」就是用来挑对那个的。
-    // 索引页形状照真字节：省表 `<li><a href="/weather/china/guangdong">广东</a></li>`、
-    // 市表 `<li> <a href="https://tianqi.moji.com/weather/china/…">新兴县</a> </li>`
-    const mkIndex = rows => '<ul>' + rows.map(r => '<li><a href="' + r[1] + '">' + r[0] + '</a></li>').join('') + '</ul>';
-    const CHA = html.replace('【新兴县天气】', '【朝阳区天气】');
-    const TWICE = [
-      { has: '/api/citysearch', status: 200, data: JSON.stringify({ city_list: [
-        { cityId: 1, id: 22, name: '朝阳区', pname: '吉林省', counname: '中国' },
-        { cityId: 2, id: 11, name: '朝阳区', pname: '北京市', counname: '中国' }] }) },
-      { has: '/weather/china/beijing/chaoyang-district', status: 200, data: CHA },
-      { has: '/weather/china/jilin/chaoyang-district', status: 200, data: CHA },
-      { has: '/weather/china/beijing', status: 200, data: mkIndex([['朝阳区', 'https://tianqi.moji.com/weather/china/beijing/chaoyang-district']]) },
-      { has: '/weather/china/jilin', status: 200, data: mkIndex([['朝阳区', 'https://tianqi.moji.com/weather/china/jilin/chaoyang-district']]) }
-    ].concat(IDX);
-    const byCoord = await run(TWICE, '我的位置', 39.92, 116.44,
-      { names: ['朝阳区', '北京市'], hint: ['北京市', '朝阳区', '建外街道', '建国路'] });
-    push('同名不同省的区县，用反查链上的市名挑：坐标在北京就取北京那条地址',
-      byCoord.ok === true && pageUrls().join(',') === 'https://tianqi.moji.com/weather/china/beijing/chaoyang-district',
-      byCoord.ok ? '城市页=' + pageUrls().join(' | ') : byCoord.why);
-
-    const typed = await run(TWICE, '朝阳区', 39.92, 116.44);
-    push('用户自己打的名字没有反查链可参照，就按检索给的第一条走（这一条记下现状，别以为它更安全）',
-      typed.ok === true && pageUrls().join(',') === 'https://tianqi.moji.com/weather/china/jilin/chaoyang-district',
-      typed.ok ? '城市页=' + pageUrls().join(' | ') : typed.why);
-
-    /* 同一份 id 缓存不许在两种判定之间共用：上面那条 typed 已经把「朝阳区＝吉林」记进缓存了，
-     * 北京坐标反查出来的同名区县必须重新判一次，否则「按线索挑」只在没有缓存时才成立 ——
-     * 而缓存迟早会有。这一段不清 localStorage，就是为了让上面那条先把脏账留下来。 */
-    mj.usePlaceNames(() => Promise.resolve({ names: ['朝阳区', '北京市'], hint: ['北京市', '朝阳区', '建外街道'] }));
-    table = TWICE; asked = [];
-    const leak = await mj.mojiWeather.weather(39.92, 116.44, '我的位置')
-      .then(() => ({ ok: true }), e => ({ ok: false, why: String(e && e.message || e) }));
-    push('「刚按用户打的名字缓存过的区县」不许被坐标反查直接继承（北京那个坐标必须重新挑成北京）',
-      leak.ok === true && pageUrls().join(',') === 'https://tianqi.moji.com/weather/china/beijing/chaoyang-district',
-      (leak.ok ? '城市页=' + pageUrls().join(' | ') : leak.why) + '，缓存里留着的是=' +
-        (JSON.parse(localStorage.getItem('weather-moji-city') || '{}')['朝阳区'] || {}).pname);
-
-    /* AQI 就在天气那一页的 HTML 里，墨迹没有单独的空气接口。空气那条链会再问一次
-     * airQuality(lat, lon) —— 只准回答「刚才为这个坐标取过的那一份」，换个坐标就必须给 null
-     * 让链子退到城市榜/模型值，不许把上一座城的数字顶到这一座城上。 */
-    const mine = await run(GOOD, '新兴县');
-    const same = mine.ok ? await mj.mojiWeather.airQuality(23.1, 112.2) : null;
-    const other = await mj.mojiWeather.airQuality(34.758, 113.665);
-    push('墨迹的 AQI 只回答「刚为这个坐标取过的那一份」；换了坐标就返回 null，让空气那条链降级',
-      mine.ok === true && !!same && same.current.us_aqi === 20 && other === null,
-      '同坐标=' + JSON.stringify(same) + '，别处=' + JSON.stringify(other));
-  } finally {
-    mj.usePlaceNames(null);
-    if (realCap === undefined) delete window.Capacitor; else window.Capacitor = realCap;
-    ['weather-moji-city', 'weather-moji-prov', 'weather-moji-url'].forEach(k => localStorage.removeItem(k));
-  }
 }
 
 /* ---------- 中文城市检索：用户写明「X县」时，类别必须参与排序 ----------
@@ -1673,7 +1357,7 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   const txt = id => { const d = disc(id); return d ? d.textContent.replace(/\s+/g, ' ') : '(没有这一条)'; };
   const { getProvider, providerLabel } = await import('/weather-app/js/providers/index.js');
 
-  const ids = ['open-meteo', 'nmc', 'wttr-in', 'moji', 'custom'];
+  const ids = ['open-meteo', 'nmc', 'wttr-in', 'custom'];
   const bad = [], titles = [];
   /* 用**和面板一样的那份输入**推 cap：自定义那一家的能力是从用户填的映射里长出来的，
    * 而映射没填好时 getProvider 是会抛的 —— 面板选中「自定义 API」正是这种时候（第一版
@@ -1714,9 +1398,9 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
     if (t !== '数据源 · ' + providerLabel(id)) bad.push(id + ' 的标题是「' + t + '」');
     titles.push(t);
   }
-  push('五家源逐个选中：能力那一行与标题都跟着注册表改口（声明不许挂着别家的话）',
-    bad.length === 0 && titles.length === 5 && new Set(titles).size === 5,
-    bad.length ? bad.join('；') : ids.map(i => providerLabel(i)).join(' / ') + '，五份标题互不相同');
+  push('四家源逐个选中：能力那一行与标题都跟着注册表改口（声明不许挂着别家的话）',
+    bad.length === 0 && titles.length === 4 && new Set(titles).size === 4,
+    bad.length ? bad.join('；') : ids.map(i => providerLabel(i)).join(' / ') + '，四份标题互不相同');
 
   /* 上面那五条走的是默认映射（含 current），永远不会抛 —— try/catch 那条分支得单独压。
    * 直调 disclosures() 喂一份缺 current 的映射：它必须**不抛**（抛了就是把设置面板带崩，
@@ -1727,9 +1411,9 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
     const l = disclosures('custom', 'auto', false, { map: { codes: 'wmo' } });
     const s = (l[0] || {}).lines || [];
     if (!s.some(t => /推不出来/.test(t))) broke = '没写「推不出来」：' + s.join(' / ').slice(0, 60);
-    if (l.length !== 4) broke += '｜只有 ' + l.length + ' 条';
+    if (l.length !== 7) broke += '｜只有 ' + l.length + ' 条';
   } catch (e) { broke = '自己抛了：' + String((e && e.message) || e); }
-  push('映射填得不全时：声明不崩，且承认「现在推不出来、所以不猜」', !broke, broke || '四条都在，能力那句换成承认拿不到');
+  push('映射填得不全时：声明不崩，且承认「现在推不出来、所以不猜」', !broke, broke || '七条都在，能力那句换成承认拿不到');
 
   /* 口径那一栏：第二条要说清「当前是哪一套」。三个选项各切一次，三句都得出现过。 */
   const seen = [];
@@ -1764,7 +1448,7 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   const 对得上 = all.length === want.length && all.every((d, i) =>
     d.dataset.d === want[i].id && d.querySelectorAll('.disc-body p').length === want[i].lines.length);
   push('这一组默认全收起，且正文一段都不许在渲染时丢掉',
-    all.length === 4 && all.every(d => !d.open) && 对得上 && want.every(w => w.lines.length >= 2),
+    all.length === 7 && all.every(d => !d.open) && 对得上 && want.every(w => w.lines.length >= 2),
     all.length + ' 条 · 展开的 ' + all.filter(d => d.open).length + ' 条 · 页面行数 ' +
     all.map(d => d.querySelectorAll('.disc-body p').length).join('/') +
     ' vs 模块给的 ' + want.map(w => w.lines.length).join('/') + '（id ' + want.map(w => w.id).join(' ') + '）');
@@ -1959,9 +1643,12 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
    * 结果我自己写在回调里的那句解释（"上面 locateTimer 那道 document.hidden 闸门…"）就把断言喂绿了，
    * 把闸门整行删掉照样不红。是 falsify 抓出来的。 */
   const 有闸门 = t => /setInterval\(\(\)\s*=>\s*\{[\s\S]{0,600}?if \(document\.hidden/.test(t);
+  /* v152 起自动刷新的计时器直接挂 refreshTick（不再写内联箭头函数），闸门在函数体第一句。 */
+  const 刷新有闸门 = t => /function refreshTick\s*\(\)\s*\{[\s\S]{0,800}?if \(document\.hidden\)/.test(t) &&
+    /setInterval\(refreshTick,/.test(t);
   push('后台不跑无谓的活：自动刷新与自动定位两条计时器都必须先问 document.hidden',
-    有闸门(refresh) && 有闸门(locate),
-    '自动刷新那一拍有闸门=' + 有闸门(refresh) + '，自动定位=' + 有闸门(locate) +
+    刷新有闸门(refresh) && 有闸门(locate),
+    '自动刷新那一拍有闸门=' + 刷新有闸门(refresh) + '，自动定位=' + 有闸门(locate) +
     '（常驻前台服务会把进程钉住，没闸门就是后台每 30/60/300 秒整屏重绘 + 写盘 + 敲原生桥）');
 
   /* ② 常驻通知满一小时重建之前，要先比一下正文有没有真的变。
@@ -2490,49 +2177,6 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   push('收尾：屏上重新有一座城的天气，三态里只剩结果区可见',
     /\d/.test(温度()) && 首页有几块() === 1 && 在屏上(结果区),
     '温度=' + 温度() + '，可见块数=' + 首页有几块() + '，标题=' + 标题().slice(0, 18));
-}
-
-/* ---------- 中文现象 → 图标这张表要一级一级走得通（2026-10-12 真机装机发现）
- * 屏上写着「多云」、画着一枚纯太阳，就是这张表错了一档。钉四档 + 两个排序陷阱：
- * 「晴间多云」必须排在「晴」之前（否则被 /晴/ 吃掉），「雷」必须排在「雹」之前。
- * 数字码那三张表（WMO / OWM / WWO）说的是同一批词，所以顺带比一次同一个词在两路下的图标 —— 不一致就是漂移。 */
-{
-  const w = await import('/weather-app/js/lib/weather.js');
-  const 该是 = [['晴', 'sun'], ['晴间多云', 'sun-02'], ['多云', 'cloudy'], ['少云', 'cloudy'],
-    ['阴', 'cloud'], ['多云转晴', 'sun'], ['雷阵雨伴冰雹', 'thunderstorm'], ['阵雨', 'rain-02']];
-  const 错 = 该是.filter(([文, 图]) => w.iconFromText(文) !== 图)
-    .map(([文, 图]) => 文 + '→' + w.iconFromText(文) + '(该' + 图 + ')');
-  const 同词 = w.iconFromText('晴间多云') === w.wmo(1).icon && w.iconFromText('多云') === w.wmo(2).icon;
-  push('中文现象四档图标各就各位，且与数字码表对同一个词给出同一个图标',
-    错.length === 0 && 同词,
-    错.length ? 错.join('、') : '四档 晴/晴间多云/多云/阴 = sun·sun-02·cloudy·cloud，' +
-      '与 WMO 0/1/2/3 逐词一致=' + 同词);
-}
-
-/* ---------- 主卡右上角那一角不许被压住（2026-10-12 真机装机发现）
- * `.star` 绝对定位在卡片右上角，它不在 `.current-head` 那条 flex 行里，所以那一行压根不知道要给它让位：
- * 行的右端只到卡片内容边（离 padding-box 右沿 22px），星的最左在 48px —— 水平重叠 26px，
- * 64px 的天气图标被星压掉一角，顺带还被 flex 从 64 压到 56（`.cur-ic` 当时没有 flex-shrink:0）。
- * 量的是「两个矩形的交」而不是「图标宽度」：只卡宽度的话，把预留量从 .current-head 挪去给 .star 加 margin
- * 照样过线，而重叠会跟着回来。 */
-{
-  const 星 = document.querySelector('.star');
-  const 图标 = document.querySelector('.cur-ic');
-  const 行 = document.querySelector('.current-head');
-  const a = 图标.getBoundingClientRect(), b = 星.getBoundingClientRect();
-  const 交 = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
-  /* 压窄那一半要单独挤一次才量得到：正常视口下这一行离装不下还远，`flex-shrink` 少写一半也照样过线，
-   * 而真机 376 CSS px 那一档确实被压成了 56。按到 120px 是**故意压过头**：不管当时那串地址长短，
-   * 这个宽度下「地址 + 64 图标 + 36 预留」一定装不下，谁没写 shrink:0 谁就被削。 */
-  const 原宽 = 行.style.width;
-  行.style.width = '120px';
-  const 挤窄后 = Math.round(图标.getBoundingClientRect().width);
-  行.style.width = 原宽;
-  push('主卡的天气图标与收藏星不相交，行被按窄时图标也不许被压扁',
-    !交 && 挤窄后 === 64,
-    '图标 ' + Math.round(a.left) + '–' + Math.round(a.right) + '，星 ' +
-    Math.round(b.left) + '–' + Math.round(b.right) + '，相交=' + 交 +
-    '；行按到 120px 之后图标宽 ' + 挤窄后);
 }
 
 window.__CHECKS__ = R;

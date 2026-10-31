@@ -2,8 +2,7 @@
  * 这一组是别的组的信息来源（通知、预警、软件声明都要看「当前选中的是哪一家」），
  * 但它不直接叫谁 —— 它只把自己那两栏的显隐摆对，剩下由注册表在各组的 sync 里重算。 */
 import { el, customInputs } from '../lib/dom.js';
-import { isNative } from '../lib/locate.js';
-import { providerNeedsKey, providerNativeOnly } from '../providers/index.js';
+import { providerNeedsKey } from '../providers/index.js';
 import * as ui from '../ui.js';
 
 function fillCustomInputs(cu) {
@@ -38,11 +37,6 @@ export default {
   },
   sync() {
     const p = el.providerSel.value;
-    // 只在壳里可用的源：浏览器里选中它必定拿不到数，直接 disabled + 在说明里写原因，
-    // 而不是让用户选完之后看一条报错（通知那一栏同一做法）
-    for (const opt of el.providerSel.options) {
-      if (opt.value === p && providerNativeOnly(p) && !isNative()) opt.disabled = true;
-    }
     el.keyField.hidden = !providerNeedsKey(p);
     el.customFields.hidden = (p !== 'custom');
   }

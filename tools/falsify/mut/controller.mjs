@@ -13,7 +13,7 @@ export default [
    * 它守的那条断言「画得出框、却没字」还在，由上面 v95 往 markup 里塞回空 .hint 那一处逼红。 */
   /* ↓ 2026-10-01 v99「省电这一轮：只抠无谓开销」。① 后台闸门、② 通知去重（Java 侧，回归按形状钉，
    *   所以这里的"改坏"也是把那个形状拆掉）、③④ 两处网络缓存的三条独立失效路径。 */
-  { name: 'v99 自动刷新又没了后台闸门（进程被 FGS 钉住，后台一直重绘）', file: F.refresh, from: '    if (document.hidden) return;\n    const favs = loadFav();', to: '    const favs = loadFav();', expect: 'document.hidden' },
+  { name: 'v99 自动刷新又没了后台闸门（进程被 FGS 钉住，后台一直重绘）', file: F.refresh, from: '  if (document.hidden) return;', to: '', expect: 'document.hidden' },
   { name: 'v100 关浮层绕开 closeSheet 直接 hidden（锁留在身上解不掉）', file: F.rank, from: '  closeSheet(el.rankView);', to: '  el.rankView.hidden = true;', expect: '排名浮层与设置共用同一把锁' },
   { name: 'v101 自动重试没有封顶（RETRY_MS 取到 undefined ⇒ 立刻再来一发）', file: F.query, from: 'if (retryRound >= RETRY_MS.length) return;', to: 'if (false) return;', expect: '失败只补两轮就收手' },
   { name: 'v101 屏幕不在前台也照发这一枪（省电闸门没了）', file: F.query, from: 'if (document.hidden) { retryWait = target; return; }', to: 'if (false) { retryWait = target; return; }', expect: '后台不白发这一枪' },

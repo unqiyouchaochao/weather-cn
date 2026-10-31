@@ -4,7 +4,7 @@
 import { el } from '../lib/dom.js';
 import { esc, hhmm, uvLabel } from '../lib/util.js';
 import { svgIcon } from '../lib/icons.js';
-import { fmtTemp, windLabel } from '../lib/config.js';
+import { fmtTemp, fmtWind } from '../lib/config.js';
 import { dayLabel } from './charts.js';
 import { providerLabel } from '../providers/index.js';
 import { loadFav, isFav, keyLabel } from '../lib/favorites.js';
@@ -22,7 +22,7 @@ function renderDetails(data) {
   const rows = [
     ['体感', c.feels != null ? fmtTemp(c.feels) : null, 'temperature'],
     ['湿度', c.humidity != null ? c.humidity + '%' : null, 'water'],
-    ['风力', (c.wind != null || c.windText) ? windLabel(c) : null, 'wind'],
+    ['风力', c.wind != null ? fmtWind(c.wind) : null, 'wind'],
     ['气压', c.pressure != null ? Math.round(c.pressure) + ' hPa' : null, 'compass'],
     ['紫外线', uvLabel(c.uv), 'sun'],
     ['降水概率', d0.precipProb != null ? d0.precipProb + '%' : null, 'rain-02'],
@@ -91,7 +91,7 @@ export function render(data, locName, providerId, favKey, silent) {
   el.curSource.title = '本卡气温、湿度、风与当日最高/最低均来自 ' + providerLabel(providerId) + '；最高/最低为当日预报值';
   setVal(el.curFeels, '体感 ' + fmtTemp(c.feels), bump);
   setVal(el.curHum, '湿度 ' + (c.humidity != null ? c.humidity : '--') + '%', bump);
-  setVal(el.curWind, '风 ' + windLabel(c), bump);
+  setVal(el.curWind, '风 ' + fmtWind(c.wind), bump);
 
   const days = (data.daily || []).slice(0, 7);
   renderDetails(data);

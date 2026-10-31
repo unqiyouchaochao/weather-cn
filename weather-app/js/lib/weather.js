@@ -33,8 +33,10 @@ export function owmIcon(id) {
   if (id >= 700 && id < 800) return 'fog';
   if (id === 800) return 'sun';
   if (id === 801) return 'sun-02';
-  if (id === 802) return 'cloudy';
-  if (id === 803 || id === 804) return 'cloud';
+  /* 803 的描述是「多云」，就得和 802 一样给 cloudy：以前它和 804 共用 cloud，
+   * 于是同一个词在「走文字的那路」和「走数字码的这路」下长出两枚图标。 */
+  if (id === 802 || id === 803) return 'cloudy';
+  if (id === 804) return 'cloud';
   return 'cloud';
 }
 export function owmDesc(id) {
@@ -74,7 +76,7 @@ export function wwo(code) {
   return x ? { desc: x[0], icon: x[1] } : { desc: '未知', icon: 'cloud' };
 }
 
-/* 只有中文现象文字时的图标推断 —— 中国天气与墨迹天气都给文字不给标准码，
+/* 只有中文现象文字时的图标推断 —— 中国天气给的是文字而不是标准码，
  * 两边共用这一张表（判据从「雷」排到「阴」，先命中先赢，所以顺序就是语义优先级）。
  * 「雷」排在「雹」前面是有意的：「雷阵雨伴冰雹」两个关键字都有，该给雷暴（更该被注意到的那个），
  * 只有不伴雷的纯冰雹/霰才落到 hail。

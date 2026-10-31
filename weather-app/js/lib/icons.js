@@ -22,7 +22,8 @@ const COLOR = {
 
 /* 界面符号：颜色交给 CSS（currentColor），这里一个色都不给 */
 const INK = ['location', 'settings', 'dark-mode', 'light-mode', 'sort', 'arrow-left',
-  'five-pointed-star', 'crystal-ball', 'paper', 'search', 'refresh', 'info'];
+  'five-pointed-star', 'crystal-ball', 'paper', 'search', 'refresh', 'info',
+  'toggle-on', 'toggle-off'];
 
 export function svgIcon(name, ink) {
   const svg = ICONS[name];

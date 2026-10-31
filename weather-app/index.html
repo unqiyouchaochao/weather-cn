@@ -44,6 +44,12 @@
       </div>
     </header>
 
+    <!-- 天气板块的全部内容都装进这一个容器里。两件事靠它：
+         ① 切换动画的作用域——被 transform 的是它，顶栏因此能原地不动（见 13-transition.css）；
+         ② 藏板块——CSS 一条选择器就够，不用再逐个数天气页散在 .app 下的那十个元素（见 11-tabs.css）。
+         为了让这一块是连续的，.foot 与 #compare 从「新闻板块之后」搬到了这里（天气页上的先后顺序没变）。
+         里面的缩进没跟着进一层：那会让这一段 150 行在 diff 里全变红，真正的改动反而被埋掉。 -->
+    <div class="view" id="weatherView">
     <section class="search">
       <input id="cityInput" type="text" placeholder="输入城市，或 lat,lon（如 34.34,108.94）" autocomplete="off" />
       <button class="loc-btn" id="locBtn" title="定位我的位置" aria-label="定位"><span class="ic" data-icon="location"></span></button>
@@ -125,8 +131,26 @@
       <div class="forecast" id="forecast"></div>
     </main>
 
+    <footer class="foot">
+      <span id="providerTag">数据源：—</span>
+    </footer>
+
+    <section id="compare" class="compare" hidden>
+      <div class="compare-head">
+        <h2>城市天气对比</h2>
+        <div class="compare-tools">
+          <button class="tool" id="exportCsv" title="导出 CSV">CSV</button>
+          <button class="tool" id="exportImg" title="导出对比截图">截图</button>
+          <button class="tool" id="shareLink" title="复制对比分享链接">分享</button>
+          <button class="close" id="closeCompare" aria-label="关闭">×</button>
+        </div>
+      </div>
+      <div class="compare-grid" id="compareGrid"></div>
+    </section>
+    </div><!-- /#weatherView -->
+
     <!-- 运势板块：内容由 js/fortune.js 渲染，纯本地推算，不发任何请求 -->
-    <section id="fortuneView" class="fortune">
+    <section id="fortuneView" class="view fortune">
       <div class="fz-day" id="fzDay"></div>
 
       <!-- 今日黄历：没填生辰时占住顶部（此时页面本来没有别的可看）；一开始排盘就整卡收起 -->
@@ -163,7 +187,7 @@
     </section>
 
     <!-- 新闻板块：列表由 js/news.js 渲染，取数与解析在 js/lib/news.js（三条源的可达性不同，见那里的注释） -->
-    <section id="newsView" class="news">
+    <section id="newsView" class="view news">
       <div class="news-head">
         <div class="news-chips" id="newsChips" role="tablist"></div>
         <button class="tool-btn" type="button" id="newsRefresh" title="重新向这个源要一次">刷新</button>
@@ -173,23 +197,6 @@
       <p class="news-src" id="newsSrc" hidden></p>
       <p class="news-disc">新闻与政策条目只是原文入口：内容归发布机构所有，本应用不转载、不改写，
         也来不及逐条核实。列表按源的返回顺序展示，点开后以原文页面为准。</p>
-    </section>
-
-    <footer class="foot">
-      <span id="providerTag">数据源：—</span>
-    </footer>
-
-    <section id="compare" class="compare" hidden>
-      <div class="compare-head">
-        <h2>城市天气对比</h2>
-        <div class="compare-tools">
-          <button class="tool" id="exportCsv" title="导出 CSV">CSV</button>
-          <button class="tool" id="exportImg" title="导出对比截图">截图</button>
-          <button class="tool" id="shareLink" title="复制对比分享链接">分享</button>
-          <button class="close" id="closeCompare" aria-label="关闭">×</button>
-        </div>
-      </div>
-      <div class="compare-grid" id="compareGrid"></div>
     </section>
   </div>
 
@@ -241,7 +248,6 @@
           <option value="open-meteo">Open-Meteo（免密钥，默认）</option>
           <option value="nmc">中国天气（中央气象台，免密钥）</option>
           <option value="wttr-in">wttr.in（免密钥·无需注册，3 天）</option>
-          <option value="moji">墨迹天气（逆向接口·仅手机 App）</option>
           <option value="custom">自定义 API（完全自由）</option>
         </select>
       </label>
@@ -283,8 +289,8 @@
 
       <fieldset class="group" id="pluginGroup">
         <legend>主题插件</legend>
-        <p class="hint" id="pluginHint">导入一个 <code>.json</code> 主题包，它会出现在上面「主题」那一栏里。
-          包里的文字对比度不够会拒绝导入，并说明是哪对配色。</p>
+        <!-- 这一组不放常驻说明：导入与验收那几句话 2026-10-15 收进了下面「软件声明」那一组
+             （lib/disclosures.js 的 themes 条）。这里只留清单本身和那个选文件的入口。 -->
         <div id="pluginList" class="plugin-list"></div>
         <label class="field inline">
           <span>导入主题包</span>
@@ -310,18 +316,23 @@
           <input type="checkbox" id="autoLocate" />
           <span>启动时使用定位加载本地天气（需已授权定位权限，或勾选后首次弹窗授权）</span>
         </label>
-        <label class="field inline">
+        <!-- 自动刷新：间隔可自定义（数值 + 单位），右边那颗是开关。
+             数值框的 min/max 与单位下拉的三档都不在这里写死 —— 由 settings/behavior.js 从
+             lib/config.js 的 REFRESH_LIMITS / SPAN_UNITS 现填（min/max 还要按当前单位换算），
+             界面上不许出现第二份范围。
+             原来这里是四个预设的下拉（关闭/30 秒/60 秒/5 分钟），2026-10-15 按用户要求改开。 -->
+        <div class="field inline" id="refreshField">
           <span>自动刷新 / 轮播</span>
-          <select id="autoRefresh">
-            <option value="0">关闭</option>
-            <option value="30">每 30 秒</option>
-            <option value="60">每 60 秒</option>
-            <option value="300">每 5 分钟</option>
-          </select>
-        </label>
+          <input type="number" id="autoRefreshNum" class="refresh-num" step="1"
+                 inputmode="numeric" aria-label="刷新间隔数值" />
+          <select id="autoRefreshUnit" class="refresh-unit" aria-label="刷新间隔单位"></select>
+          <button type="button" id="autoRefreshToggle" class="switch" aria-pressed="false"
+                  title="开启或关闭自动刷新"><span class="sw-ic"></span><span class="sw-tx">关闭</span></button>
+        </div>
+        <p class="hint small" id="refreshHint" hidden></p>
       </fieldset>
 
-      <fieldset class="group">
+      <fieldset class="group" id="notifyGroup">
         <legend>通知栏天气</legend>
         <label class="check">
           <input type="checkbox" id="notifyOn" />
@@ -331,7 +342,7 @@
         <p class="hint small" id="notifyHint"></p>
       </fieldset>
 
-      <fieldset class="group">
+      <fieldset class="group" id="alertGroup">
         <legend>气象预警</legend>
         <label class="check">
           <input type="checkbox" id="alertOn" />

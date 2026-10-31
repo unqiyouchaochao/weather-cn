@@ -26,7 +26,8 @@ function repaint() {
     /* 带 id 是规矩，不是装饰：回归里那条「设置面板不许有写死的 .hint」放的正是
      * 「带 id 的动态提示」这一类（notifyHint / alertHint 同列）。这一条按清单空不空决定出没出现，
      * 属于那一类；不给 id 就是往面板里塞一段固定说明。 */
-    el.pluginList.innerHTML = lastErrors.length ? errBlock() : '<p class="hint" id="pluginEmpty">还没有导入过主题。</p>';
+    el.pluginList.innerHTML = lastErrors.length ? errBlock()
+      : '<p class="hint" id="pluginEmpty">还没有导入过主题。怎么导入、什么样的会被拒，写在下面「软件声明 · 主题插件」那一条里。</p>';
     return;
   }
   el.pluginList.innerHTML = (lastErrors.length ? errBlock() : '') + items.map(p =>

@@ -250,6 +250,12 @@ body[data-theme="dark"] {
   font-size: 15px;
   cursor: pointer;
   transition: .15s;
+  /* 华为 LNA-AL00 上「查询」两个字会折成一行一个：这一颗是 flex 子项，默认 `flex-shrink:1`
+   * 且按钮文字允许在任意位置断行，于是输入框先抢走宽度、它被压到两个字竖排。
+   * 337~800px 逐档扫过，整页只有这一处会折 —— 是折行不是溢出（横向溢出为零）。
+   * 两条都要写：`flex:0 0 auto` 让它不参与收缩，`nowrap` 兜住系统把字号调大那一档。 */
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .search button#searchBtn:hover { background: var(--brand-2); }
 
@@ -610,6 +616,30 @@ body[data-theme="dark"] {
 .chip { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); border-radius: 999px; padding: 4px 10px; font-size: 12px; color: var(--ink); background: var(--field-bg); min-height: 30px; }
 .chip input { margin: 0; }
 
+/* ---------- 自动刷新：数值 + 单位 + 右边那颗开关 ----------
+ * 两态的配色一律复用已经过 AA 扫过的配对，不新造第三组没人量过的组合：
+ *  关 = --ink 压 --field-bg（与上面 .chip 同一对）
+ *  开 = --hero-ink 压 --brand（与「保存并应用」那颗主按钮同一对）
+ * 允许换行：411px 那一档「标签 + 数值 + 单位 + 开关」一行装不下，装不下就整颗开关掉到下一行，
+ * 而不是把数值框挤成 20px 或者让这一行横向溢出。 */
+/* 选择器都挂在 #refreshField 上，不是为了好看：`.field input, .field select { width: 100% }`
+ * 是 (0,1,1)，单挂一个类的 .refresh-num 是 (0,1,0) —— 量不到也报错不了，浏览器实测就是
+ * 「数值框被拉满整行、5 这个数字孤零零贴在右边」，第二行只剩单位和开关。 */
+#refreshField { flex-wrap: wrap; }
+#refreshField > span { flex: 1 0 100%; }
+#refreshField .refresh-num { flex: 0 0 auto; width: 76px; text-align: right; }
+#refreshField .refresh-unit { flex: 1 1 90px; width: auto; }
+#refreshField .switch { flex: 0 0 auto; display: inline-flex; align-items: center; gap: 6px; min-height: 34px;
+  padding: 0 12px; border: 1px solid var(--line); border-radius: 999px; cursor: pointer;
+  background: var(--field-bg); color: var(--ink); font-size: 12px; }
+#refreshField .switch .sw-ic { display: inline-flex; width: 20px; height: 20px; }
+#refreshField .switch[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--hero-ink); }
+/* 关着时数值与单位两格是 disabled 的（behavior.js 写的），但浏览器不会自己把禁用输入框画灰 ——
+ * 看着能改、点下去没反应，比摆一个灰开关更坏。这里不用 opacity：半透一层压出来的是一对
+ * 从没量过的复合色（而且 AA 断言量不到它）。改成直接取 --muted 这一档已有的次要文字色，
+ * 并把「--muted 压 --field-bg」这一对逐主题纳入那条 AA 断言。 */
+#refreshField :disabled { color: var(--muted); border-color: var(--line); cursor: not-allowed; }
+
 
 /* ---------- 主题插件列表 ---------- */
 .plugin-list { display: flex; flex-direction: column; gap: 6px; margin: 8px 0 2px; }
@@ -678,7 +708,11 @@ body[data-theme="dark"] {
   flex: 0 0 auto;
   width: 58px;
   scroll-snap-align: start;
-  background: var(--surface);
+  /* 实底，不走 --surface：这一屏有 24 格，磨砂要给每一格单独取一次背景快照，
+   * 是这台机上最大的一笔常数开销（详见 17-glass.css 那条名单的来历）。
+   * 摘掉玻璃的同时必须连卡面一起换成 --card —— 留着半透而不糊，透出来的就是
+   * 生硬的渐变条纹，比实底难看。文字对比度因此只会更好（少一层复合）。 */
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px 4px;
@@ -721,6 +755,8 @@ body[data-theme="dark"] {
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 这一族留在玻璃上：最多 8 块、不横滚，而它正好压在主题立绘的下半身 —— 改实底等于把人盖掉
+   * （2026-10-19 真机图里量到的）。要摘的是上面那 24 格横滚砖，那才是每帧重取快照的一笔。 */
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -835,23 +871,14 @@ body[data-theme="dark"] {
 .tab-i { width: 17px; height: 17px; display: inline-flex; }
 .tab-i svg { width: 100%; height: 100%; display: block; }
 
-/* 板块可见性。天气板块的元素散落在 .app 下没有统一容器，所以那份清单只写一遍，
- * 用 :not([data-tab="weather"]) 命中「当前不在天气」；其余板块各有自己的容器，一条一行。
- * 之前是「每加一个板块就把九条选择器重抄一遍」，第三个板块一进来就要抄第三次，改成这样收口。 */
-body:not([data-tab="weather"]) .search,
-body:not([data-tab="weather"]) #coordLine,
-body:not([data-tab="weather"]) #favBar,
-body:not([data-tab="weather"]) #compareBtn,
-body:not([data-tab="weather"]) #compareHint,
-body:not([data-tab="weather"]) #status,
-body:not([data-tab="weather"]) #loading,
-body:not([data-tab="weather"]) #result,
-body:not([data-tab="weather"]) #compare,
-body:not([data-tab="weather"]) .foot,
+/* 板块可见性。三个板块各有自己的容器（天气那页的元素原先散在 .app 下、要靠十条选择器点名，
+ * 2026-10-10 收进 #weatherView），所以这里三条就够。
+ * 顺带补上一个一直漏网的：#emptyState 以前不在那份清单里，查询失败后再切到运势/新闻，
+ * 那张「什么都没查到」的卡会跟着一起过去。整块藏就不会再有点名点漏这种事。 */
+body:not([data-tab="weather"]) #weatherView,
 body:not([data-tab="fortune"]) #fortuneView,
 body:not([data-tab="news"]) #newsView { display: none; }
 
-.fortune { animation: fade .25s ease; }
 .fz-day { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; color: var(--muted); margin: 2px 0 12px; }
 .fz-day b { color: var(--ink); font-size: 16px; }
 .fz-sub { color: var(--muted); font-size: 12px; }
@@ -927,36 +954,49 @@ body:not([data-tab="news"]) #newsView { display: none; }
 .hl-foot { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
 
 /* ---------- 板块切换特效 ----------
- * 首选原生 View Transitions：old/new 两张快照同时动，才是真正的「推入」。
- * 方向靠 --vt-in/--vt-out 两个自定义属性传进来（自定义属性会继承进伪元素树），
- * 由 js/tabs.js 的 swapView() 在 startViewTransition 之前写。
- * 顶栏与菜单栏单独命名，切换时它们原地不动 —— 底部导航跟着一起滑是廉价感的最大来源。 */
-@keyframes vt-out-fwd { to { opacity: 0; transform: translateX(-22px); } }
-@keyframes vt-in-fwd { from { opacity: 0; transform: translateX(22px); } }
-@keyframes vt-out-back { to { opacity: 0; transform: translateX(22px); } }
-@keyframes vt-in-back { from { opacity: 0; transform: translateX(-22px); } }
-
-.topbar { view-transition-name: topBar; }
-.tabbar { view-transition-name: tabBar; }
-::view-transition-old(root) { animation: var(--vt-out, fade-out .2s ease both); }
-::view-transition-new(root) { animation: var(--vt-in, fade-in .2s ease both); }
-/* 原地不动的两个命名块：连淡入淡出也关掉，否则菜单栏会在切换瞬间「重绘」一下 */
-::view-transition-old(topBar), ::view-transition-new(topBar),
-::view-transition-old(tabBar), ::view-transition-new(tabBar) { animation: none; }
-@keyframes fade-out { to { opacity: 0; } }
-@keyframes fade-in { from { opacity: 0; } }
-
-/* 老 WebView 没有 startViewTransition：只给新内容做单侧滑入，观感接近、绝不白屏 */
-body.sw-fwd .app { animation: vt-in-fwd .3s cubic-bezier(.32, .72, .24, 1) both; }
-body.sw-back .app { animation: vt-in-back .3s cubic-bezier(.32, .72, .24, 1) both; }
+ * 只动 opacity / transform 这两个合成属性：它们交给合成器，主线程一帧都不占。
+ * 方向由 js/tabs.js 写成 body 上的一个类名；顶栏与底部菜单栏都不在 .view 里，切换时天然原地不动
+ * —— 底部导航跟着一起滑是廉价感的最大来源。
+ * 容器每次从 display:none 回到在场时浏览器会自己重放它身上的 animation，所以不需要
+ * 「摘类名 → 强制重排 → 挂回去」那套重发把戏；要不要动也轮不到 JS 问，末尾那条 media query 一挡就没了。
+ *
+ * 这里原本走的是原生 View Transitions（old/new 两张快照同时动，才是真正的「推入」）。2026-10-11 在
+ * 华为 LNA-AL00 上同一页对拍：带装饰的那套主题下，纯 CSS 首帧 16~57ms，把旧那套注回去、同一次点击外面
+ * 再套一次整页快照是 20~73ms —— **分不出高下**。更早一轮在「装进壳里的那一份」上量到 73~107 对 20~51，
+ * 两轮只差在页面来源（壳里的 assets 对 开发机现 Serving），还没归因清楚，所以这里不敢写成结论。
+ * 每次都复现的是另一件事：切**进天气**比切出去贵 2~3 倍（首帧 41~57 对 16~32）。贵的不是动画，
+ * 是那一页从 display:none 回来要重建布局、重画整叠 backdrop-filter。动效这一层已经不是瓶颈了。 */
+@keyframes view-in-fwd { from { opacity: 0; transform: translateX(22px); } to { opacity: 1; transform: none; } }
+@keyframes view-in-back { from { opacity: 0; transform: translateX(-22px); } to { opacity: 1; transform: none; } }
+body.sw-fwd .view { animation: view-in-fwd .26s cubic-bezier(.32, .72, .24, 1) both; }
+body.sw-back .view { animation: view-in-back .26s cubic-bezier(.32, .72, .24, 1) both; }
+/* 进场是从右往左推（反向是左往右），transformed 的盒子要计入文档的溢出区，那 22px 会把
+ * scrollWidth 撑宽、页面能横向抖出一小截。用 clip 不用 hidden：hidden 会把根元素变成滚动容器
+ * （sticky、滚动恢复都跟着变），clip 只裁不滚，与 visible 搭着也不改变另一轴。
+ * 老 WebView 不认 clip 时这条直接失效，最坏就是回到那 22px 的抖动，不会更糟。 */
+html { overflow-x: clip; }
 .tab:active { transform: scale(.985); }
 
+/* 浮层（排名 .sheet、设置 .modal）的**进场**也归这一片管，与板块切换同一套话：
+ * 面板从 hidden 回到在场时浏览器自动重放它身上的 animation，所以这一头不需要 JS。
+ * 退场那一头留在 js/lib/sheet.js 里用 WAAPI 播——「必须等动画跑完才能 hidden」这件事只有 JS 知道。
+ * 两边的数值是同一对：sheet.js 的 OUT 就是 overlay-in 的反向，改一处必须同时改另一处，
+ * 否则进出场各走各的曲线，看着就像两个面板。设置弹窗以前只有退场没有进场，一开就是硬切。
+ *
+ * **末尾不许写 `both`/`forwards`。** 这一条踩过一次整片失效：`to` 那帧是 `transform: none`，
+ * 而 fill 会把这个「恒等矩阵」永远钉在元素上 —— 非 none 的 transform 就是一个 backdrop root，
+ * 把里面每一层 backdrop-filter 的取样范围裁成这个盒子自己，于是磨砂只剩半透，底下那页的字原样透上来。
+ * 2026-10-19 真机量的：设置面板开着时里面十几层磨砂一起没生效，computed 读数全都正常，只有像素不认。
+ * 摘掉 fill 之后终态就是元素本来那帧（opacity 1 / transform none），视觉上一个像素都没变。
+ * 上面 `.view` 那两条还留着 `both`：它们挂在 body 的类名上，类名一摘效果就整个撤走，
+ * 量过 computed transform 确实是 none —— 但那是「靠别人摘类名」保的，面板这一头没人摘。 */
+@keyframes overlay-in { from { opacity: 0; transform: translateY(9px) scale(.99); } to { opacity: 1; transform: none; } }
+.sheet, .modal { animation: overlay-in .22s cubic-bezier(.32, .72, .24, 1); }
+
 @media (prefers-reduced-motion: reduce) {
-  body.sw-fwd .app, body.sw-back .app { animation: none; }
-  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+  body.sw-fwd .view, body.sw-back .view, .sheet, .modal { animation: none; }
   .tab, .tab:active { transition: none; transform: none; }
 }
-
 /* ---------- 手机上的设置面板：改底部抽屉 ----------
  * 居中弹窗在 411px（K60 的 CSS 视口 = 1440/3.5）宽的手机上会被挤成一格 110px 的下拉，
  * 而且上下都要滚动。手机上贴底铺开是更合身的形态：横向占满、只留顶部圆角、
@@ -990,8 +1030,8 @@ body.sw-back .app { animation: vt-in-back .3s cubic-bezier(.32, .72, .24, 1) bot
 
 /* ---------- 新闻板块 ----------
  * 列表放在 --card 上而不是页面渐变上：标题/时间用的 --ink / --muted 是照卡片量过对比度的，
- * 直接铺在 --w-* 渐变上等于换了一个没量过的底色。 */
-.news { animation: fade .25s ease; }
+ * 直接铺在 --w-* 渐变上等于换了一个没量过的底色。
+ * 进场的淡入不写在这里：三个板块共用容器那一条（见 13-transition.css）。 */
 .news-head { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; }
 .news-chips { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
 .chip-btn {
@@ -1079,10 +1119,15 @@ body { --surface: var(--card); --muted: var(--muted-base); }
    * 这份名单与上面用 var(--surface) 的那批卡面一一对应，改卡面要同时改这里
    * （tests/app.checks.mjs 里有一条断言专门盯这两份名单不许各自漂移）。
    * 走 --glass-fx 而不是把声明写死：这样「某一块整片不该糊」是改一个变量，
-   * 不是去名单里挑挑拣拣 —— .sheet 就是这么退出玻璃的，见下面那条。 */
+   * 不是去名单里挑挑拣拣 —— .sheet 就是这么退出玻璃的，见下面那条。
+   * 2026-10-18 退出 .hr 一族：一屏 24 格小时砖，而且这一条横滚每滚一帧都要给每格重取一次背景快照，
+   * 是这台机上最大的一笔常数开销 —— 少一层磨砂看不出来，少 24 次每帧快照看得出来。退出名单必须
+   * 连 --surface 一起换掉：留着半透而不糊，透出来的是生硬的渐变条纹，比实底难看（那条「两份名单
+   * 一一对应」的断言就是防这个的）。同一天试过的 .dt 已经放回名单：它最多 8 块、不横滚，代价只有
+   * 1/4，而它正压在主题立绘的下半身，改实底等于把人盖掉（2026-10-19 真机图里看到的）。 */
   body :is(
-    .ccard, .current-card, .air-card, .day, .chip, .gear, .icon-btn, .search input, .loc-btn,
-    .tool-btn, .compare-tools .tool, .suggest, .hr, .dt, .fz-card, .news-list, .alert-item,
+    .ccard, .current-card, .air-card, .day, .dt, .chip, .gear, .icon-btn, .search input, .loc-btn,
+    .tool-btn, .compare-tools .tool, .suggest, .fz-card, .news-list, .alert-item,
     .rank-row, .rank-loading, .sheet-note, .tabbar, .modal-card,
     .sk-card, .forecast .sk-day) {
     -webkit-backdrop-filter: var(--glass-fx, blur(var(--glass-blur, 0px)) saturate(1.1));
@@ -1151,12 +1196,9 @@ input[type="range"] { width: 100%; accent-color: var(--accent); }
   /* 整块自己不滚：滚动只许发生在 .sheet-body 那一层（与 .modal-card 同一套三段式）。
      少了这一条，标题/返回/排序会跟着 360 行一起滚走，滚到深处屏上就没有出口了。 */
   overflow: hidden;
-  /* 进场：从下方抬 14px 淡入。退场不在这里 —— 那是 lib/sheet.js 用 WAAPI 播的，
-     因为「必须等动画跑完才能 hidden」这件事只有 JS 知道，写在 CSS 里会两头对不上。 */
-  animation: sheet-in .22s cubic-bezier(.22, .72, .3, 1) both;
+  /* 进出场不在这里：那一段与板块切换共用（进场见 13-transition.css 的 overlay-in，退场见 js/lib/sheet.js）。
+     退场必须等动画跑完才能 hidden，这件事只有 JS 知道，写在 CSS 里会两头对不上。 */
 }
-@keyframes sheet-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-@media (prefers-reduced-motion: reduce) { .sheet { animation: none; } }
 /* 用 data-sheet 属性而不是 body 类：body 的类名这一层以前被 ui.applyBg() 每次刷新整体重写，
    挂在类上的东西会被它抹掉。（2026-10-04 起 applyBg 改写 data-weather，类名已经腾出来了，
    但这条不改：属性选择器与主题的 data-theme 同一风格，也没必要为一件没坏事的东西再动一次。） */

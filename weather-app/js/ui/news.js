@@ -3,9 +3,12 @@
 import { el } from '../lib/dom.js';
 import { esc } from '../lib/util.js';
 import { isNative } from '../lib/locate.js';
-import { CHANNELS, getChannel } from '../lib/news.js';
+import { CHANNELS, getChannel, peek } from '../lib/news.js';
 
 let active = 'china';
+/* 屏上那一份列表是谁画的：频道 + 取数层给的那个数组。数组换了对象就等于内容换过，
+ * 所以这一个键不需要再带时间戳（新鲜度只有 lib/news.js 的 TTL 一个判据）。 */
+let 画着 = null;
 /* 用世代号而不是「正在加载」布尔量：布尔量会让连点两个频道时后一次直接 return，
  * 结果是频道高亮已经换人了、列表还是上一个的（实测出现过 政策 亮着、列表却是中国的）。
  * 号号不相等就说明这份结果迟到了，丢掉不画。 */
@@ -39,16 +42,26 @@ function show(items, src) {
 
 /** 进板块或切频道时调用。force=true 是用户主动按刷新。 */
 export function render(force) {
+  /* 反复进板块不该把列表擦一遍再建一遍：条目没变（取数层给的还是同一个数组）就把 30 个 <li>
+   * 重新 innerHTML 一次，是白干的一笔布局 —— 频繁切板块时卡顿就有这一份。
+   * 只认「同一个数组」这一个判据，不另算时间：新鲜度归 lib/news.js 的 TTL 管，那边过期换了数组，
+   * 这里自然就不认了。按「刷新」(force)、换频道、上一回根本没画成都走原来的重取重画。 */
+  if (!force) {
+    const 缓存 = peek(active);
+    if (缓存 && 画着 && 画着.ch === active && 画着.items === 缓存.items) return;
+  }
   const my = ++seq;
   drawChips();
   const ch = CHANNELS.filter(c => c.id === active)[0] || {};
   note('正在加载' + (ch.label || '') + '…');
   el.newsList.innerHTML = '';
   el.newsSrc.hidden = true;
+  画着 = null;                                   // 这一趟没画成之前，屏上那份已经不算数了
   getChannel(active, force).then(r => {
     if (my !== seq) return;                                  // 期间已经切走了，这份迟到结果不画
     if (!r.items.length) { note('这个源此刻没有条目，过几分钟再刷新。', 'warn'); return; }
     show(r.items, r.src);
+    画着 = { ch: active, items: r.items };
     note('');
   }).catch(e => {
     if (my !== seq) return;

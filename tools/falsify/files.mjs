@@ -1,10 +1,9 @@
 /* falsify 的「改哪个文件」登记表。
  * 单独一个文件是因为变异表按族拆成了几份（tools/falsify/mut/*.mjs），它们都要引用同一份路径表；
  * 路径表只在这一处写，新增一个被盯的文件就在这里加一个键。
- * 键名短的有意识：表里条条都写 `file: F.moji`，读起来像句子。值一律是**仓库根的相对路径**
+ * 键名短的有意识：表里条条都写 `file: F.idx`，读起来像句子。值一律是**仓库根的相对路径**
  * （falsify 与 anchor-audit 都拿它直接拼 ROOT）。 */
 export const F = {
-  moji: 'weather-app/js/providers/mojiWeather.js',
   idx: 'weather-app/js/providers/index.js',
   china: 'weather-app/js/providers/chinaWeather.js',
   stations: 'weather-app/js/lib/nmc-stations.js',

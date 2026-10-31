@@ -49,7 +49,9 @@ export function openSettings() {
 }
 export function closeSettings() { closeSheet(el.modal); }   // 播完退场才 hidden，见 lib/sheet.js
 
-export function onProviderChange() { GROUPS.forEach(g => g.sync && g.sync()); }
+/* 面板里「当前是哪一家、哪几个开关开着」变了都要重算各组的说明，所以这一把不只给数据源用：
+ * 通知与预警那两栏的提示按「用过没有」显隐，开关那一拨也得走这里。 */
+export function resync() { GROUPS.forEach(g => g.sync && g.sync()); }
 export function onStdChange() { GROUPS.forEach(g => g.syncStd && g.syncStd()); }
 
 export function saveSettings() {

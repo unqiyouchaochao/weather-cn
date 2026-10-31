@@ -4,7 +4,7 @@
 import { el } from '../lib/dom.js';
 import { esc } from '../lib/util.js';
 import { svgIcon } from '../lib/icons.js';
-import { fmtTemp, windLabel } from '../lib/config.js';
+import { fmtTemp, fmtWind } from '../lib/config.js';
 import { miniChart } from './charts.js';
 import { paintHome, skeletonCards } from './home.js';
 
@@ -21,7 +21,7 @@ export function cardFields(r) {
     range: d.tmax != null ? '高 ' + maxText + ' / 低 ' + minText : '—',
     humidity: (c.humidity != null ? c.humidity : '--') + '%',
     humNum: c.humidity != null ? c.humidity : '',
-    wind: windLabel(c),
+    wind: fmtWind(c.wind),
     icon: c.icon || 'cloud',
     daily: (r.data && r.data.daily) || []
   };

@@ -44,23 +44,14 @@
 .tab-i { width: 17px; height: 17px; display: inline-flex; }
 .tab-i svg { width: 100%; height: 100%; display: block; }
 
-/* 板块可见性。天气板块的元素散落在 .app 下没有统一容器，所以那份清单只写一遍，
- * 用 :not([data-tab="weather"]) 命中「当前不在天气」；其余板块各有自己的容器，一条一行。
- * 之前是「每加一个板块就把九条选择器重抄一遍」，第三个板块一进来就要抄第三次，改成这样收口。 */
-body:not([data-tab="weather"]) .search,
-body:not([data-tab="weather"]) #coordLine,
-body:not([data-tab="weather"]) #favBar,
-body:not([data-tab="weather"]) #compareBtn,
-body:not([data-tab="weather"]) #compareHint,
-body:not([data-tab="weather"]) #status,
-body:not([data-tab="weather"]) #loading,
-body:not([data-tab="weather"]) #result,
-body:not([data-tab="weather"]) #compare,
-body:not([data-tab="weather"]) .foot,
+/* 板块可见性。三个板块各有自己的容器（天气那页的元素原先散在 .app 下、要靠十条选择器点名，
+ * 2026-10-10 收进 #weatherView），所以这里三条就够。
+ * 顺带补上一个一直漏网的：#emptyState 以前不在那份清单里，查询失败后再切到运势/新闻，
+ * 那张「什么都没查到」的卡会跟着一起过去。整块藏就不会再有点名点漏这种事。 */
+body:not([data-tab="weather"]) #weatherView,
 body:not([data-tab="fortune"]) #fortuneView,
 body:not([data-tab="news"]) #newsView { display: none; }
 
-.fortune { animation: fade .25s ease; }
 .fz-day { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 8px; font-size: 14px; color: var(--muted); margin: 2px 0 12px; }
 .fz-day b { color: var(--ink); font-size: 16px; }
 .fz-sub { color: var(--muted); font-size: 12px; }

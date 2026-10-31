@@ -7,7 +7,7 @@ import { setPlaceTitle } from '../lib/notify.js';
 
 /* placeBase 非空即表示当前标题就是定位点；切成搜出来的城市时自动作废。 */
 let placeBase = '', placeTail = '';
-/* 「我的位置」定到位后直接显示地名链（云浮市 · 新兴县 · 新城镇 · 惠中路），不再挂前缀；
+/* 「我的位置」定到位后直接显示地名链（云浮市 · ××县 · ××镇 · ××路），不再挂前缀；
  * 「网络定位」要留着 —— 那是 IP 估的城市，标出来才不会让人以为应用把位置搞错了。 */
 export const BARE_BASES = ['我的位置'];
 function placeTitle(locName, tail) {

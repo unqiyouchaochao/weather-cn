@@ -4,7 +4,6 @@
  * provider 接口：
  *   { id, label, needsKey,
  *     cap: { byCityName, air, hourly, daily, background },   // 界面按能力显隐，不再到处 typeof 探测
- *     nativeOnly?: true,                        // 接口不放行浏览器跨域，只有壳里的原生 HTTP 拿得到（墨迹）
  *     geocode?(city) -> { lat, lon, name }      // 只认地名的源也要能「城市名 → 坐标」，检索走 lib/geo.js
  *     airLabel?: '国控站实测 · 国标',             // AQI 卡的出处与口径；缺省回落到 providerLabel
  *                                               //   注意 cap.air 只代表「可能有」，取不到值时 ui 仍会回落
@@ -22,21 +21,19 @@
  *   daily:   [ { date, tmax, tmin, desc, icon, code, sunrise?, sunset?, precipProb?, precip? } ]
  *   alert?:  { id, name, levelName, levelId, color, rank, title, text, guide, issuedAt, adcode, src? } | null
  *              气象灾害预警，形如 null 表示该地此刻没有在发预警（界面整块收起）。
- *              「中国天气」在实况报文里给（见 lib/alerts.js 的 fromWarn），墨迹在城市页里给一条；
+ *              「中国天气」在实况报文里给（见 lib/alerts.js 的 fromWarn）。
  *              `src` 写的是**发这条信号的家的名字**，界面那行出处直接用它 —— 缺了就退回当前源的标签。
  *              别的源不填即可 —— 缺字段就等于没有这一栏，不需要额外的能力开关。
  */
 import { openMeteo } from './openMeteo.js';
 import { chinaWeather } from './chinaWeather.js';
 import { wttrIn } from './wttrIn.js';
-import { mojiWeather } from './mojiWeather.js';
 import { buildCustomProvider } from './custom.js';
 
 const REGISTRY = {
   [openMeteo.id]: openMeteo,
   [chinaWeather.id]: chinaWeather,
-  [wttrIn.id]: wttrIn,
-  [mojiWeather.id]: mojiWeather
+  [wttrIn.id]: wttrIn
 };
 
 export function getProvider(cfg) {
@@ -59,14 +56,9 @@ export function providerNote(id) {
   if (id === 'custom') return '要自己填接口地址与字段映射（URL 里的 {city} {lat} {lon} {key} 会被替换）。不执行任何代码。';
   return (REGISTRY[id] && REGISTRY[id].note) || '';
 }
-/* 这个源只有原生 HTTP 拿得到（接口不放行浏览器跨域）。设置面板据此把选项标成「仅手机」并禁用，
- * query() 也据它在浏览器里明确报错 —— 不能让它在桌面上「选中→一直转圈→空白」。 */
-export function providerNativeOnly(id) {
-  return !!(REGISTRY[id] && REGISTRY[id].nativeOnly);
-}
 /* 这个源能不能喂「划掉应用之后还在跑的那一路」（通知栏每小时自取、预警每 10 分钟自查）。
  * 判据不是「它有没有数据」，是**它给不给得出 JSON 配方**：原生那边按「URL + 字段路径」取值，
- * 而墨迹的实况在城市页的 HTML 里、逐小时那一发又是「从现在起滚动 24 小时」，拼不出「此刻」。
+ * 而只给 HTML 页面的源拼不出「此刻」。
  * 所以只有「中国天气」为 true。真正的账还是以 data.recipe 为准（见 lib/notify.js 的 recipeNow），
  * 这一位只用来把设置里那两行说明写对 —— 别让用户勾了半天、其实后台根本没在跑。 */
 export function providerBackground(id) {

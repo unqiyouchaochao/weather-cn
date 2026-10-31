@@ -3,7 +3,7 @@
 平时用不到；官方站点表变了、或想让按名称检索覆盖更全时才跑一次。
 产物是纯静态文件，应用本身没有构建步骤。
 
-    cd 到任一空目录后：python <仓库根>/tools/build-nmc-stations.py
+    cd 到任一空目录后：python D:/qder/天气/tools/build-nmc-stations.py
 
 外部依赖（只在构建期）：
   1) https://www.nmc.cn/rest/province/all + /rest/province/{省码}   → 站名与站点码（2529 站）

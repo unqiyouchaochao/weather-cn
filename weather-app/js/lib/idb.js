@@ -1,7 +1,7 @@
 /* 一个极小的 IndexedDB 键值封装 —— 目前只有主题插件的图片素材用它。
  *
  * 为什么不用 localStorage：插件的图片是二进制，一个带立绘的包 2.1MB。localStorage 通常按源给 5~10MB，
- * 而本项目已经拿它存 config / geo / alerts / 墨迹 url 这些**承重**缓存，
+ * 而本项目已经拿它存 config / geo / alerts 这些**承重**缓存，
  * 且现有约定是配额满了就 `catch {}` 静默退化成内存态（见各 lib 的 lsSet）。
  * 那种静默退化对配置无所谓，对「用户导入的主题」是灾难：刷新一次主题就没了，还不报错。
  * 所以图片走 IDB（原生存 Blob，顺带省掉 base64 那 33% 膨胀），localStorage 只留轻量的令牌与 CSS。

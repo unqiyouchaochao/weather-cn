@@ -80,6 +80,12 @@
   font-size: 15px;
   cursor: pointer;
   transition: .15s;
+  /* 华为 LNA-AL00 上「查询」两个字会折成一行一个：这一颗是 flex 子项，默认 `flex-shrink:1`
+   * 且按钮文字允许在任意位置断行，于是输入框先抢走宽度、它被压到两个字竖排。
+   * 337~800px 逐档扫过，整页只有这一处会折 —— 是折行不是溢出（横向溢出为零）。
+   * 两条都要写：`flex:0 0 auto` 让它不参与收缩，`nowrap` 兜住系统把字号调大那一档。 */
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 .search button#searchBtn:hover { background: var(--brand-2); }
 

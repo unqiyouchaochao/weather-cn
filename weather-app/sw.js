@@ -3,8 +3,12 @@
  * 改完任何 js/css/html 必须升一次 CACHE，否则老用户拿到的仍是旧壳。
  * SHELL 那份清单不手写：`node tools/gen-shell.mjs`（npm run apk 第一句就跑它）按磁盘上的文件重写，
  * 手写漏一项是「联网一切正常、离线才白屏」那种 bug。 */
-/* 号段跳到 v139：main 分支那一侧的工作树已经用到 v137，两条线共用一个号会退化成旧缓存。 */
-const CACHE = 'weather-studio-v139';
+/* 号段比 main 那一侧的工作树走在前面：那边已经用到 v137，两条线共用一个号会退化成旧缓存。
+ * 2026-10-19：overlay-in 的 fill 钉住恒等矩阵，整个设置面板的 backdrop-filter 白挂 —— 修它顺带把 .dt 放回玻璃，样式又变了一次。
+ * 2026-10-20：把源码注释里指向开发者本机的那条地址链（县/镇/路三级与它的拼音）打成 ×× —— 纯注释，行为一个字节都没变，
+ *   但注释在 js 里就是改字节，按上面那条规矩照样升一号。同一天第二版：geo.js 里引用的那份检索夹具
+ *   整个换成合成件（地名、osm_id、坐标三样一起改），文件名也跟着换 —— 又是一次纯注释/引用改动，号继续走。 */
+const CACHE = 'weather-studio-v1';
 /* SHELL:BEGIN 这份清单由 tools/gen-shell.mjs 生成，别手工增删 */
 const SHELL = [
   './',
@@ -46,7 +50,6 @@ const SHELL = [
   './js/providers/custom.js',
   './js/providers/index.js',
   './js/providers/mapping.js',
-  './js/providers/mojiWeather.js',
   './js/providers/openMeteo.js',
   './js/providers/wttrIn.js',
   './js/query.js',

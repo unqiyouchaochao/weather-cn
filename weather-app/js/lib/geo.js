@@ -39,11 +39,11 @@ function nameBonus(name, q) {
 }
 
 /* 用户写明「X县 / X旗」时，**类别本身就是线索**，必须参与排序。
- * 2026-09-29 真机上搜「新兴县」，屏上标题是「Xinxing · Jilin Province」，广东那座排到第 10：
- * Photon 在手机上回的是英文名（同一句在桌面端回的是「新兴县」），nameBonus 一律 0，
+ * 2026-09-29 真机上搜「××县」，屏上标题是「×× · Jilin Province」，广东那座排到第 10：
+ * Photon 在手机上回的是英文名（同一句在桌面端回的是「××县」），nameBonus 一律 0，
  * 于是排序只剩行政等级 —— 而等级表把 county(50) 永远压在 city(80) 与 Open-Meteo 的 PPLA3(70) 下面，
  * 用户点名要的那一类反而注定排最后。等级只回答「多大」，不回答「是不是用户说的那一种」。
- * 只补 县/旗 这一档：① 它有真机字节撑着（`tests/fixtures/xinxing-search-shapes.json`）；
+ * 只补 县/旗 这一档：① 它有真机字节撑着（`tests/fixtures/homonym-search-shapes.json`）；
  * ② 「市/州/盟」那类等级排序本来就偏向它们，再抬就会把 OSM 的点顶到主源之上，波及所有城市搜索；
  * ③ 「X区」没有实测样本（OSM 里区有 district 也有 suburb，没抓过真响应），不照猜测加规则。
  * 加分只进 score，不进 rank —— rank 那一路还管着「要不要再兜底问一遍 OSM」。 */
@@ -94,7 +94,7 @@ function dedupeRank(list) {
 
 // 返回按可信度排序的候选；一个都没有时返回空数组。
 // 数组上挂一个 `silent`：**这一轮两家检索源一个都没答**（全请求失败）时为 true。
-// 2026-10-01 实测同一句「新兴县」连问 5 次，前两次两源都没给可用结果、后三次正常 —— 公共实例会整轮不答。
+// 2026-10-01 实测同一句「××县」连问 5 次，前两次两源都没给可用结果、后三次正常 —— 公共实例会整轮不答。
 // 那种情况报「未找到，可试试加上市/县后缀」是把上游没答说成用户词写得不对，责任归错了。
 function tag(list, asked, failed) {
   list.silent = asked > 0 && failed === asked;
@@ -147,7 +147,7 @@ export function searchCities(q, signal) {
 // 主源首条即用户想要的城市时直接返回，供 geocode 用。
 // 结果按名字缓存在 localStorage：城市不会挪位置，而这一发要串起 5~8 个跨域检索请求
 //（实测冷 850ms / 热 230ms），启动恢复上次城市、轮播、按名收藏全靠它。
-/* 旧表里躺着的是**按错的排序挑出来的城市**（「新兴县」→ 吉林那座），而这一张表 30 天不过期 ——
+/* 旧表里躺着的是**按错的排序挑出来的城市**（「××县」→ 吉林那座），而这一张表 30 天不过期 ——
  * 光改代码不改表名，用户搜过一次的那座错城会一直留在屏上。所以换名重来，旧表直接扔掉：
  * 检索冷了重问一发也就 850ms，拿错省的坐标当用户这儿的不行（宁缺勿错）。 */
 try { localStorage.removeItem('weather-studio-geo'); } catch (e) { /* 读不到就当没有 */ }
@@ -177,7 +177,7 @@ export async function bestCity(name) {
   const hit = geoCache()[q];
   if (hit && hit.v && hit.v.lat != null && Date.now() - (hit.at || 0) < GEO_TTL) return hit.v;
   let list = await searchCities(name);
-  /* 一整轮都没人答：隔 600ms 再问一次。这不是想象出来的补救 —— 2026-10-01 同一句「新兴县」连问 5 次，
+  /* 一整轮都没人答：隔 600ms 再问一次。这不是想象出来的补救 —— 2026-10-01 同一句「××县」连问 5 次，
    * 前两次空、后三次正常，公共实例的"不答"是按轮次的，重试一发就能分清真有没有这个词。 */
   if (!list.length && list.silent) {
     await new Promise(r => setTimeout(r, 600));
@@ -197,9 +197,9 @@ export async function bestCity(name) {
 /* ---------- 逆地理编码：坐标 → 「市 · 区县 · 街道 · 路」 ----------
  * 定位成功后给「我的位置」补一个看得懂的地名。两个源并用（都免 key、CORS 放行，2026-09-20 实测）：
  * - Photon(OSM)：唯一能给到路名的一路（实测上海市中心 → 黄浦区 / 南京东路街道 / 西藏南路），
- *   但层级槽位不稳 —— 广东新兴县那个点它把「新城镇」塞在 city 里、地级市整个缺席。
+ *   但层级槽位不稳 —— 广东那个县级的点它把「县下辖的镇」塞在 city 里、地级市整个缺席。
  *   **别传 lang=zh**：公共实例只认 default/de/en/fr，传了直接 400。不传时给的是 OSM 本地名，
- *   但**不保证是中文**：同一个点桌面端拿到「新兴县/新城镇」，手机上拿到「Xinxing/Xincheng」，
+ *   但**不保证是中文**：同一个点桌面端拿到汉字那一层，手机上拿到同一层的拼音，
  *   所以中文过滤要配合槽位退让（见 pickPlace），不能指望它一次给全。
  * - BigDataCloud reverse-geocode-client：行政层级最全（省/市/县/镇都能给），但没有路名，
  *   而且繁简混排（实测上海的区返回「黃浦區」）。所以字段能取 Photon 就取 Photon，BDC 只补地级市与镇。
@@ -239,10 +239,10 @@ function pickPlace(p, b) {
     return v;
   };
   // 槽位按候选顺序试到「第一个能用的」为止，不能只取首个非空：同一个点，桌面端 Photon 返回
-  // 新兴县/新城镇，手机 Photon 返回 Xinxing/Xincheng（公共实例多语种不保证，实测两条链路结果不同），
+  // ××县/××镇，手机 Photon 返回同一层的拼音（公共实例多语种不保证，实测两条链路结果不同），
   // 先被拼音占住槽位、再由上面那道过滤丢弃，县名就整段没了 —— 必须退到 BDC 的中文名。
   const add = (...vs) => { for (const v of vs) { const s = ok(v); if (s) { out.push(s); return; } } };
-  // BDC 的行政链自带级号，实测同一个点：中华人民共和国@2 / 广东省@4 / 云浮市@5 / 新兴县@6 / 新城镇@8。
+  // BDC 的行政链自带级号，实测同一个点：中华人民共和国@2 / 广东省@4 / 云浮市@5 / ××县@6 / ××镇@8。
   // 顶层那几个槽位不稳（Photon 被限流时只剩 BDC，实测 b.locality 会空掉，县名就没了），
   // 所以每个槽位都留一条按级取名的后路。
   const adm = (b.localityInfo && b.localityInfo.administrative) || [];
@@ -251,7 +251,7 @@ function pickPlace(p, b) {
   add(CITY_RE.test(p.city) ? p.city : '', b.city, admAt(5), CITY_RE.test(p.state) ? p.state : '');
   add(p.county, SUB_RE.test(p.city) ? p.city : '', SUB_RE.test(p.district) ? p.district : '',
     b.locality, SUB_RE.test(admAt(6)) ? admAt(6) : '');
-  // 街道/镇：Photon 的三个槽位里挑带乡镇后缀的那个（县城里往往是 city=新城镇，直辖市是 district=XX街道）。
+  // 街道/镇：Photon 的三个槽位里挑带乡镇后缀的那个（县城里往往是 city=镇名，直辖市是 district=XX街道）。
   // BDC 的深层行政单元只在接受到乡镇级后缀时才用 —— 日本的「大字」级和国外的社区名会补出重复一段。
   add(...[p.district, p.city, p.locality].filter(x => TOWN_RE.test(x || '')),
     (adm.filter(a => (a.adminLevel || 0) >= 7 && TOWN_RE.test(a.name || '')).pop() || {}).name);
@@ -280,30 +280,9 @@ export function reverseGeo(lat, lon) {
   });
 }
 
-/* ---------- 「这一带叫什么」：给只会按城市名取数的源用（墨迹） ----------
+/* ---------- 「我的位置」这一类标题不是地名 ----------
  * 「我的位置」「网络定位」是标题占位符，不是地名 —— 拿它去问一个只认地名的源，
  * 必然得到「没有收录」（2026-09-29 真机就是卡在这一步：换了源、屏上一动不动）。
- * 反查链已经把这一带的行政名给全了，这里只负责从里面挑出「能当城市名用」的那几段。
- * 这一份放在 geo.js 而不是各源自己抄一遍：query.js 判占位符、ui.js 判出处、墨迹挑城市名，
- * 三处问的是同一件事。 */
+ * query.js 判占位符、ui 判出处，问的是同一件事，所以判据只留这一份。 */
 const PLACE_BASES = ['我的位置', '网络定位'];
 export function isPlaceName(name) { return PLACE_BASES.indexOf(String(name || '').trim()) >= 0; }
-
-const ADMIN_TAIL = /(市|区|县|旗|州|盟)$/;
-// 省与特别行政区整段不要：拿「广东省」去查，给出的是省府所在地的天气，不是用户脚下的
-const NOT_ADMIN = /(省|自治区|特别行政区)$/;
-/** 从「市 · 区县 · 街道 · 路」里挑可用于按名取数的地名。
- *  街道/镇/路一律不要 —— 「新城镇」这种镇名检索会命中别省的同名镇，拿几百公里外的天气当这里的；
- *  区县排在市前面（离用户更近），市排在后面兜底（墨迹的区县收录不全）。 */
-export function placeCandidates(txt) {
-  const segs = String(txt || '').split(' · ').map(s => s.trim()).filter(Boolean);
-  const admin = segs.filter(s => ADMIN_TAIL.test(s) && !NOT_ADMIN.test(s));
-  const fine = admin.filter(s => /(区|县|旗)$/.test(s));
-  const coarse = admin.filter(s => /(市|州|盟)$/.test(s));
-  return { names: fine.concat(coarse), hint: segs };
-}
-
-/** 坐标 → 可试的地名候选 `{names, hint}`；反查两个源都没回时 names 是空数组。 */
-export function placeNames(lat, lon) {
-  return reverseGeo(lat, lon).then(placeCandidates, () => ({ names: [], hint: [] }));
-}

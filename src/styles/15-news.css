@@ -1,7 +1,7 @@
 /* ---------- 新闻板块 ----------
  * 列表放在 --card 上而不是页面渐变上：标题/时间用的 --ink / --muted 是照卡片量过对比度的，
- * 直接铺在 --w-* 渐变上等于换了一个没量过的底色。 */
-.news { animation: fade .25s ease; }
+ * 直接铺在 --w-* 渐变上等于换了一个没量过的底色。
+ * 进场的淡入不写在这里：三个板块共用容器那一条（见 13-transition.css）。 */
 .news-head { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; }
 .news-chips { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
 .chip-btn {

@@ -8,29 +8,38 @@ import * as ui from '../ui.js';
 import { ICON_CHOICES, iconSupported, currentIcon, applyIcon, iconLabel } from '../lib/appicon.js';
 
 let iconBuilt = false;
+const mark = id => [].slice.call(el.iconGrid.children).forEach(n => n.classList.toggle('on', n.dataset.id === id));
+
+/* 网格与监听只建一次（openSettings 会被反复调用，重铺一遍会把监听叠成两份） */
+function buildGrid() {
+  if (iconBuilt) return;
+  iconBuilt = true;
+  el.iconGrid.innerHTML = ICON_CHOICES.map(c =>
+    '<button type="button" class="ic-thumb" data-id="' + c.id + '" title="' + c.label + '">' +
+    '<svg viewBox="0 0 108 108" width="46" height="46" aria-hidden="true" style="background:' + c.bg + ';color:' + c.ink + '">' + c.art + '</svg>' +
+    '<span>' + c.label + '</span></button>').join('');
+  el.iconGrid.addEventListener('click', e => {
+    const b = e.target.closest('.ic-thumb');
+    if (!b) return;
+    applyIcon(b.dataset.id)
+      .then(id => { mark(id); ui.showStatus('桌面图标已切到「' + iconLabel(id) + '」（桌面那一枚可能过一会儿才刷新）'); })
+      .catch(err => ui.showStatus('换图标失败：' + ((err && err.message) || err), true));
+  });
+}
 function syncIconUI() {
-  if (!iconSupported()) return;
+  /* 不支持就把它收回去 —— 原来只在不支持时 early return，从不 hidden=true：
+   * 一次「先支持、后不支持」之间那组会一直留在屏上（回归里假原生插件跑完就是这一形状，
+   * 2026-10-15 由那条「三组整组不画」的断言抓出来）。与通知/预警那两组同一写法。 */
+  if (!iconSupported()) { el.iconGroup.hidden = true; return; }
   el.iconGroup.hidden = false;
-  const mark = id => [].slice.call(el.iconGrid.children).forEach(n => n.classList.toggle('on', n.dataset.id === id));
-  if (!iconBuilt) {
-    iconBuilt = true;
-    el.iconGrid.innerHTML = ICON_CHOICES.map(c =>
-      '<button type="button" class="ic-thumb" data-id="' + c.id + '" title="' + c.label + '">' +
-      '<svg viewBox="0 0 108 108" width="46" height="46" aria-hidden="true" style="background:' + c.bg + ';color:' + c.ink + '">' + c.art + '</svg>' +
-      '<span>' + c.label + '</span></button>').join('');
-    el.iconGrid.addEventListener('click', e => {
-      const b = e.target.closest('.ic-thumb');
-      if (!b) return;
-      applyIcon(b.dataset.id)
-        .then(id => { mark(id); ui.showStatus('桌面图标已切到「' + iconLabel(id) + '」（桌面那一枚可能过一会儿才刷新）'); })
-        .catch(err => ui.showStatus('换图标失败：' + ((err && err.message) || err), true));
-    });
-  }
+  buildGrid();
   currentIcon().then(id => { if (id) mark(id); });
 }
 
 export default {
-  // 启动时就把网格建好（壳里），打开设置再同步一次当前是哪套
-  build() { syncIconUI(); },
+  /* 启动时只把网格建好，**不敲原生**：那一发 currentIcon() 是实打实的 WebView→Java 往返，
+   * 而用户可能从头到尾不打开设置。「现在是哪套」由 fill() 每次开面板时问 —— 那才是需要它的时刻，
+   * 上面注释里「以原生回的名字为准」那条要求一点没让步。 */
+  build() { if (iconSupported()) buildGrid(); },
   fill() { syncIconUI(); }
 };

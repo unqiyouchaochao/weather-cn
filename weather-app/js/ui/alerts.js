@@ -23,7 +23,7 @@ export function renderAlerts(data, keepVisible, providerId) {
   lastAlertKey = key;
   if (!list.length) { clearAlerts(); return; }
   el.alertWrap.hidden = false;
-  /* 出处跟着发这条信号的源走。以前这里写死「中央气象台 · 中国天气」，选中墨迹之后卡片还挂着
+  /* 出处跟着发这条信号的源走。以前这里写死「中央气象台 · 中国天气」，选中不给预警的那一家之后卡片还挂着
    * 别家的名字 —— 数字没错，出处错了，在这一屏上就是骗人（宁缺勿错）。 */
   el.alertScope.textContent = list[0].src || providerLabel(providerId || loadConfig().provider);
   el.alertList.innerHTML = list.map(a =>

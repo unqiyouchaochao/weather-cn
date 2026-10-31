@@ -14,7 +14,11 @@
   flex: 0 0 auto;
   width: 58px;
   scroll-snap-align: start;
-  background: var(--surface);
+  /* 实底，不走 --surface：这一屏有 24 格，磨砂要给每一格单独取一次背景快照，
+   * 是这台机上最大的一笔常数开销（详见 17-glass.css 那条名单的来历）。
+   * 摘掉玻璃的同时必须连卡面一起换成 --card —— 留着半透而不糊，透出来的就是
+   * 生硬的渐变条纹，比实底难看。文字对比度因此只会更好（少一层复合）。 */
+  background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 10px 4px;
@@ -57,6 +61,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  /* 这一族留在玻璃上：最多 8 块、不横滚，而它正好压在主题立绘的下半身 —— 改实底等于把人盖掉
+   * （2026-10-19 真机图里量到的）。要摘的是上面那 24 格横滚砖，那才是每帧重取快照的一笔。 */
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;

@@ -11,12 +11,12 @@ export default [
   /* ↓ v113 S3：老配置升版那一步。三条各拦一种「迁移顺手多干了一件事」。 */
   { name: 'v113 迁移不看版本号（为背景升一次版，把用户挑的数据源打回默认）', file: F.cfg,
     from: '    if (老版 < 2) cache.provider = DEFAULT_CFG.provider;', to: '    cache.provider = DEFAULT_CFG.provider;',
-    expect: '升 v3 只清背景' },
+    expect: '迁移到 v5' },
   { name: 'v113 配置里那一格 bg 没删（合并结果里 stored.bg 会活下来）', file: F.cfg,
-    from: '      delete cache.bg;', to: '      void cache.bg;', expect: '升 v3 只清背景' },
+    from: '      delete cache.bg;', to: '      void cache.bg;', expect: '迁移到 v5' },
   { name: 'v113 照片键没删（那张 JPEG 一直躺在 localStorage 里）', file: F.cfg,
     from: "      try { localStorage.removeItem('weather-bg-photo'); } catch (e) { /* 清不掉也只能这样 */ }",
-    to: '      void 0;', expect: '升 v3 只清背景' },
+    to: '      void 0;', expect: '迁移到 v5' },
   /* ↓ v121 主题从 11 套收到 2 套：老用户存的 id 可能查无此套。两条各拦一半——
    *   第一条不修（屏上落默认套、设置下拉里却没有这一项，读出来是空串）；
    *   第二条不分明暗侧（深色用户一觉醒来变成浅色）。 */
@@ -27,19 +27,16 @@ export default [
     from: "    if (v && !认识(v)) cache[k] = k === 'theme' ? defaultOf(已删主题[v] || 'light') : null;",
     to: "    if (v && !认识(v)) cache[k] = k === 'theme' ? defaultOf('light') : null;",
     expect: '落到同明暗侧的默认套' },
-  { name: '中国天气那条预警不记自己的出处', file: F.alerts, from: "    src: '中央气象台 · 中国天气'", to: '    src: undefined', expect: '那行出处跟着「发这条信号的源」走' },
-  { name: '风只给文本时又被当成缺测（选中墨迹屏上是「风 --」）', file: F.cfg, from: '  if (c && c.wind != null) return fmtWind(c.wind);', to: '  if (c && c.wind != null) return fmtWind(c.wind); if (c) return null;', expect: '源只给文本（几级风）时原样显示' },
   /* ↓ 2026-10-01 v95「软件声明」这一组 + 顺手修的两条测试自身的竞态/空门。
    *   这一轮值得记的东西一半在测试上：三条断言原本是**绿的摆设**（/手机|App/ 谁家文案里都有、
    *   nowIdx>0 零点必红、hw.hidden 量的其实是网络快慢），所以变异里特意有几处是去打那些
    *   「看着像判据、其实恒真」的位置，红了才算把门装上。 */
-  { name: 'v95 能力行不看 cap.air（空气质量永远报「给」）', file: F.disc, from: "['空气质量', !!c.air, '']", to: "['空气质量', true, '']", expect: '五家源逐个选中' },
-  { name: 'v95 标题写死成中国天气（选了别家也挂着这句）', file: F.disc, from: "title: '数据源 · ' + label", to: "title: '数据源 · 中国天气'", expect: '五家源逐个选中' },
+  { name: 'v95 能力行不看 cap.air（空气质量永远报「给」）', file: F.disc, from: "['空气质量', !!c.air, '']", to: "['空气质量', true, '']", expect: '四家源逐个选中' },
+  { name: 'v95 标题写死成中国天气（选了别家也挂着这句）', file: F.disc, from: "title: '数据源 · ' + label", to: "title: '数据源 · 中国天气'", expect: '四家源逐个选中' },
   { name: 'v95 映射不全时不再兜住（设置面板当场崩）', file: F.disc, from: "try { p = getProvider({ provider: providerId, custom: custom || {} }); }\n  catch (e) { capErr = String((e && e.message) || e); }", to: "p = getProvider({ provider: providerId, custom: custom || {} }); void capErr;", expect: '映射填得不全时' },
   { name: 'v95 推不出来却硬编一句「能力齐全」', file: F.disc, from: "s1.push(capErr ? '这一家的能力要看你填的映射，现在推不出来（' + capErr + '），所以不猜。'", to: "s1.push(capErr ? '这一家的能力齐全。'", expect: '映射填得不全时' },
   { name: 'v95 口径那一行不看选中的标准（永远写默认那套）', file: F.disc, from: "'当前口径：' + stdLabel(aqiStd)", to: "'当前口径：' + stdLabel('auto')", expect: '换空气质量口径' },
-  { name: 'v95 署名那栏又把「逐小时另取 Open-Meteo」写死（有逐小时的也挂着别家）', file: F.disc, from: "if (!c.hourly) gap.push('逐小时另取 Open-Meteo 的模型值');", to: "gap.push('逐小时另取 Open-Meteo 的模型值');", expect: '五家源逐个选中' },
-  { name: 'v95 浏览器里不再说「这一家在浏览器用不了」（原正则的空门）', file: F.disc, from: '  if (only) s1.push(native ?', to: '  if (only && false) s1.push(native ?', expect: '选项变灰，声明要按' },
+  { name: 'v95 署名那栏又把「逐小时另取 Open-Meteo」写死（有逐小时的也挂着别家）', file: F.disc, from: "if (!c.hourly) gap.push('逐小时另取 Open-Meteo 的模型值');", to: "gap.push('逐小时另取 Open-Meteo 的模型值');", expect: '四家源逐个选中' },
   { name: 'v99 通知正文没变也照发（每小时白重画一次 SystemUI）', file: F.svc, from: '        if (text.equals(prefs(ctx).getString(KEY_LIVE_TEXT, ""))', to: '        if (text.length() > 0', expect: '通知正文没变就不许重发' },
   { name: 'v100 锁只挂在 body 上（根元素没标记，那条 overflow 压根不生效）', file: F.sheet, from: "  document.documentElement.dataset.sheet = 'open';", to: '  void 0;', expect: '打开设置就把背景锁住' },
   /* 第一版这条改的是「abort 里顺手解锁」—— 跑下来不红，而且**不该红**：openSheet 里 abort 之后

@@ -14,10 +14,20 @@ const LS_KEY = 'weather-studio-config';
  * 键名留着是为了两种情况下都不把一个还认得的 id 当乱码处理。 */
 const 已删主题 = { bridal: 'light', light: 'light', sunset: 'light', paper: 'light', mono: 'light', tianyi: 'light',
   ocean: 'dark', dusk: 'dark', ember: 'dark', oled: 'dark' };
-/* 默认数据源换过一次（open-meteo → 中国天气）：光改这里对**已存过配置**的设备无效，
- * 所以配一个一次性迁移（见下方 DEF_VER）。用户自己在设置里选过的源不该被覆盖，
- * 但绝大多数人从没动过，那一次就该吃到新默认。 */
+/* 默认值升版号：改了 DEFAULT_CFG 里「老用户也该跟着变」的项就 +1。
+ * 迁移只在首次 load 时跑一次并落盘，之后用户在设置里的选择不会再被覆盖。
+ * **每一条迁移都要认自己的版本号**：这一整块以前不分版本地重跑 `cache.provider = 默认`，
+ * 于是「为背景升一次版」会把用户挑过的数据源一起打回默认（2026-10-04 加 v3 时发现并改掉）。
+ * 现在 v2 那一刀只对没做过它的人跑，v3 那一刀只管清背景，v5 那一刀只管把已经下架的源落回默认。
+ * 它必须写在 DEFAULT_CFG 下面这一句里、也要存在于那份默认配置本身：「恢复默认」落的就是
+ * `clone(DEFAULT_CFG)`，不带 defVer 的话下次启动会被当成 v1，把每一条迁移重跑一遍 ——
+ * v4 那一刀尤其致命，它会把「刚恢复的默认 300 秒」读成「原来在跑」而把开关点亮。 */
+const DEF_VER = 5;
 export const DEFAULT_CFG = {
+  defVer: DEF_VER,       // 这份默认配置对应的迁移版本，见上方注释与 loadConfig 里那一块
+  /* 默认数据源换过一次（open-meteo → 中国天气）：光改这里对**已存过配置**的设备无效，
+   * 所以配了 DEF_VER 那一次性迁移。用户自己在设置里选过的源不该被覆盖，
+   * 但绝大多数人从没动过，那一次就该吃到新默认。 */
   provider: 'nmc',
   key: '',
   lastCity: '北京',
@@ -28,7 +38,8 @@ export const DEFAULT_CFG = {
   favorites: [],
   units: { temp: 'C', wind: 'kmh' },
   autoLocate: false,      // 启动自动定位（权限已授予时总会尝试）
-  autoRefresh: 0,         // 自动刷新/轮播间隔（秒，0=关）
+  autoRefresh: 300,       // 自动刷新/轮播的间隔（秒，可自定义；范围只有本文件下方的 REFRESH_LIMITS 一处说）
+  autoRefreshOn: false,   // 右侧那颗开关：关着就不排计时器，而间隔值留着，下次开不用重填。**新装必须是关**
   birth: null,            // 运势板块的生辰 {iso,y,mo,d,s}；s 是时辰序号 0..11，-1=不确定。只存本机
   locFix: null,           // 最近一次「设备定位」成功的 {lat,lon,at}；定位超时时用来判断能否沿用，见 main.js
   /* 通知栏实时天气。on 默认开（用户要的功能），fields 缺项按 notify.js 里的默认值补，
@@ -77,14 +88,43 @@ export const DEFAULT_CFG = {
 
 const clone = o => JSON.parse(JSON.stringify(o));
 
-/* 默认值升版号：改了 DEFAULT_CFG 里「老用户也该跟着变」的项就 +1。
- * 迁移只在首次 load 时跑一次并落盘，之后用户在设置里的选择不会再被覆盖。
- * **每一条迁移都要认自己的版本号**：这一整块以前不分版本地重跑 `cache.provider = 默认`，
- * 于是「为背景升一次版」会把用户挑过的数据源一起打回默认（2026-10-04 加 v3 时发现并改掉）。
- * 现在 v2 那一刀只对没做过它的人跑，v3 那一刀只管清背景。 */
-const DEF_VER = 3;
-
 let cache = null;
+/* 自动刷新这一格的语义全在这里：范围、怎么夹、怎么读成人话、开关合出来到底隔多久跑。
+ * 为什么住在 lib 而不是 js/refresh.js（那个计时器的主人）：「软件声明」那一组也要念这些数，
+ * 而 lib 不许 import 上层 —— 范围与读法放下面，refresh.js 与设置那一组、声明那一组都来 import 它。
+ * 下限 15 秒：再低就是在敲气象接口而不是刷新页面；上限 12 小时：比这更长的「自动」没有意义，
+ * 划掉应用之后那一拍本来就由手机壳里的常驻服务独立负责。 */
+export const REFRESH_LIMITS = { min: 15, max: 12 * 3600 };
+
+export function clampRefresh(sec) {
+  const n = Math.round(Number(sec));
+  if (!Number.isFinite(n) || n <= 0) return 0;                       // 0 与非法值 = 关
+  return Math.min(Math.max(n, REFRESH_LIMITS.min), REFRESH_LIMITS.max);
+}
+/** 这一轮到底隔多久跑：开关关着就是 0（不排计时器），开着才认那个自定义值 */
+export function effectiveRefresh(cfg) {
+  const c = cfg || loadConfig();
+  return c.autoRefreshOn ? clampRefresh(c.autoRefresh) : 0;
+}
+/* 秒 ↔ 「数值 + 单位」两格：反推时挑最大那个能整除的单位，7 分钟不该被写成 420 秒。
+ * 这一张表同时是设置里那个单位下拉的**唯一来源**（settings/behavior.js 由它生成 option），
+ * 界面上不再手打第二份 1/60/3600。 */
+export const SPAN_UNITS = [3600, 60, 1];
+export const SPAN_WORD = { 3600: '小时', 60: '分钟', 1: '秒' };
+export function splitSpan(sec) {
+  for (const u of SPAN_UNITS) if (sec % u === 0 && sec / u >= 1) return [sec / u, u];
+  return [sec, 1];
+}
+export function humanSpan(sec) {
+  const [n, u] = splitSpan(sec);
+  return n + ' ' + SPAN_WORD[u];
+}
+/** 「能落在 X ~ Y 之间」这句的唯一写法：设置里那条动态提示与「软件声明」都念它，
+ *  免得两处各拼一遍、其中一处把上限写成下限而没人发现。 */
+export function spanRange() {
+  return humanSpan(REFRESH_LIMITS.min) + ' ~ ' + humanSpan(REFRESH_LIMITS.max);
+}
+
 export function loadConfig() {
   if (cache) return cache;
   let stored = null;
@@ -119,6 +159,24 @@ export function loadConfig() {
       delete cache.bg;                                  // 配置里那一格整个作废
       try { localStorage.removeItem('weather-bg-photo'); } catch (e) { /* 清不掉也只能这样 */ }
     }
+    if (老版 < 4) {
+      /* 「自动刷新」从四个预设下拉改成自定义间隔 + 开关：老值 0/30/60/300 里 0 就是关。
+       * 平移规则是「谁原来在跑，升级后还按同一个节拍跑」—— 非 0 的连值带开关一起搬，
+       * 没跑过的（存的是 0、或者压根没这一键）把间隔落回默认值等着被打开，不让它一升级就自己跑起来。
+       * 读的是 **stored 那一份**，不是合并过默认值的 cache：新装时 stored 是 null、老配置缺这一键时
+       * 它是 undefined，两种都落在「没有值 = 关」的老语义上；读 cache 拿到的是默认的 300，
+       * 于是第一次打开设置就是开着的（2026-10-15 浏览器实测抓到，两形都中过）。 */
+      const 老间隔 = Number(stored && stored.autoRefresh) || 0;
+      cache.autoRefreshOn = 老间隔 > 0;
+      cache.autoRefresh = 老间隔 > 0 ? 老间隔 : DEFAULT_CFG.autoRefresh;
+    }
+    if (老版 < 5 && stored && stored.provider === 'moji') {
+      /* 墨迹那一源已经整个下架：注册表里没有它，`getProvider` 会静默落到 Open-Meteo，
+       * 而设置面板那个 <select> 回填一个不存在的 option 会得到空值 —— 用户看到的是
+       * 「我明明选过一家，怎么变成默认了」。所以照实改口成默认源，让屏幕上这一格与存盘那一份一致。
+       * 认的是 stored 那一份：新装时 stored 为 null，本来就没有这一位要迁。 */
+      cache.provider = DEFAULT_CFG.provider;
+    }
     cache.defVer = DEF_VER;
     saveConfig(cache);
   }
@@ -141,10 +199,4 @@ export function fmtTemp(v) {
 export function fmtWind(v) {
   if (v == null || isNaN(v)) return '--';
   return unitPref().wind === 'ms' ? uWind(v).toFixed(1) + ' m/s' : Math.round(uWind(v)) + ' km/h';
-}
-/* 风：有数字就按单位偏好换算；只给「西南风2级」这种文本的源（墨迹）原样搬过来。
- * 替他算一个 km/h 出来就是编数据 —— 2 级是 1.6~3.3 m/s 一个区间，不是一个值。 */
-export function windLabel(c) {
-  if (c && c.wind != null) return fmtWind(c.wind);
-  return String((c && c.windText) || '').trim() || '--';
 }

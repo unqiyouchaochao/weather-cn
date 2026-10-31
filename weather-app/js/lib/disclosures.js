@@ -2,17 +2,22 @@
  *
  * 为什么单独成一个模块，而不是把文字写在 index.html 里：这四段说的全是
  * 「当前选中的这一家到底给什么、数从哪来、存在哪」，**必须跟着选择变**。
- * 写死在 markup 里就会出现「选了墨迹、下面还挂着中国天气那 2529 个站」这种声明与实际不一致 ——
+ * 写死在 markup 里就会出现「选了 A 家、下面还挂着 B 家那 2529 个站」这种声明与实际不一致 ——
  * 那是这个项目最不该有的一类错（宁缺勿错）。所以这里一个字都不写死厂商名，
- * 全部从 providers 注册表的能力位现推（cap / note / nativeOnly / background / alert / airLabel）。
+ * 全部从 providers 注册表的能力位现推（cap / note / background / alert / airLabel）。
  *
  * 三条口径：
  * ① 只说代码真做得到的事。没实现的不写「将会」，拿不到的写「不给」。
  * ② 长度受控：每条一行一句，最多四句。全文在 README，界面上只留能一眼扫完的量。
  * ③ 默认收起（main.js 渲染时不加 open），点开才展开 —— 这一组的存在本身就是为了
  *    「想查的时候查得到，平时不占地方」。 */
-import { getProvider, providerLabel, providerNote, providerNativeOnly, providerBackground, providerGivesAlerts } from '../providers/index.js';
+import { getProvider, providerLabel, providerNote, providerBackground, providerGivesAlerts } from '../providers/index.js';
 import { AQI_STDS } from './aqi.js';
+/* 主题插件那一条的数字全部从校验层自己拿：格式串、尺寸上限、AA 线。写死在文案里，
+ * 哪天 LIMITS 调了这条声明就开始说谎 —— 而它是用户唯一会当成「规则」读的那段话。 */
+import { PLUGIN_FORMAT, LIMITS } from './themePlugin.js';
+import { AA_LINE } from './themeScan.js';
+import { DEFAULT_CFG, humanSpan, spanRange } from './config.js';
 
 const YES = '给', NO = '不给';
 
@@ -50,15 +55,12 @@ export function disclosures(providerId, aqiStd, native, custom) {
   catch (e) { capErr = String((e && e.message) || e); }
   const label = providerLabel(providerId);
   const note = providerNote(providerId);
-  const only = providerNativeOnly(providerId);
   const out = [];
 
   const s1 = [];
   if (note) s1.push(note);
   s1.push(capErr ? '这一家的能力要看你填的映射，现在推不出来（' + capErr + '），所以不猜。'
     : '这一家的能力：' + caps(p) + '。');
-  if (only) s1.push(native ? '它是逆向来的网页接口，不放行浏览器跨域，所以只有 App 里（原生 HTTP）拿得到。'
-    : '它是逆向来的网页接口，不放行浏览器跨域 —— 在浏览器里选中它必然报错，请换一家。');
   if (!providerBackground(providerId)) {
     s1.push('划掉应用之后不再自取：通知栏那条会停在最后一次的内容。');
   }
@@ -81,8 +83,46 @@ export function disclosures(providerId, aqiStd, native, custom) {
     '自定义源那格只解析 JSON、不执行任何代码。'
   ] });
 
+  /* 主题插件的规则原先是「主题插件」那个分组里一段常驻 .hint，2026-10-15 按用户要求收进这一组
+   * 统一管理：那一段是解释性的长句，天天开着面板的人不需要天天读它，而真要导入一次的人一定
+   * 会先翻说明 —— 放分组里两头不讨好。规则本身以校验层为准，这里只是把它说给人听。 */
+  out.push({ id: 'themes', title: '主题插件 · 导入与验收', lines: [
+    '导入一个 format 为 "' + PLUGIN_FORMAT + '" 的 .json 主题包，它会出现在上面「主题」那一栏里，选中即生效；删掉就回到内置那两套。',
+    '装之前先量文字对比度：最低的那一对必须 ≥ ' + AA_LINE.toFixed(1) + '（WCAG AA）。不达标直接拒收，并把是哪一对配色、比值多少、要求多少原样列在面板上 —— 不存在「警告一下照样装」。',
+    '尺寸闸：单图 ≤' + (LIMITS.maxAsset / 1048576) + 'MB、整包 ≤' + (LIMITS.maxTotal / 1048576) + 'MB、图 ≤' + LIMITS.maxAssets +
+      ' 张、令牌 ≤' + LIMITS.maxTokens + ' 个。应用自己下发的令牌名（--w-* / --glass-* / --lace / --surface / --muted）不收：插件写了要么和 applyTheme 抢下发顺序，要么绕过对比度补偿链。'
+  ] });
+
+  /* 第五条原来是「通知栏天气只在手机 App 里可用（浏览器拿不到系统通知权限）」这类话，散在
+   * 那两个分组的动态提示里。2026-10-15 用户要求：浏览器里这两组整组不画（跟「桌面图标」同一
+   * 手法，反正 pushAlerts 第一行没插件就 return，控件在浏览器里一个都不起作用），为什么少
+   * 了东西收到这一组里说一次。判据是 notifySupported()/alertSupported() 同一把尺子。 */
+  out.push({ id: 'native', title: native ? '哪些能力要手机壳在场' : '这一版跑在浏览器里：少了哪几样', lines: native ? [
+    '现在跑在手机 App 里：通知栏常驻天气、预警通知、桌面图标切换、后台保活与开机自启这几样都在，面板里「通知栏天气」「气象预警」「桌面图标」那三组也因此才画出来。',
+    '页面上的天气、预警栏、逐小时、收藏与主题插件都不依赖原生 —— 换到浏览器一样能用；那边那三组会整组不画，这一条会跟着改口。',
+    '常驻那条与预警提醒都归系统管：小米/华为要在系统的应用设置里放行「自启动」，否则上滑清理等于强制停止，连排好的闹钟一起被取消。',
+    '预警不额外耗流量：它跟着天气那一发一起核对，到门槛级别才弹通知，同一张网只给最新一条。划掉应用之后每 10 分钟自取一次专盯它的那一路，只有「中国天气」给得出配方。'
+  ] : [
+    '这一版拿不到系统通知权限：「通知栏天气」「气象预警」「桌面图标」那三组整组不画，面板里看不到它们不是坏了，也不是被藏进哪个二级页。',
+    '不依赖原生的部分照常：天气与逐日逐小时、页面上那条预警栏、空气质量、收藏与并排对比、运势、新闻、主题插件都不受影响。要常驻通知与后台自取，得装手机 App。'
+  ] });
+
+  /* 自动刷新这一条。间隔能自定义之后，「范围多少、关着时那个数值去哪了、划掉应用后归谁
+   * 管」一定会被问 —— 按 2026-10-15 定的口径，这类解释一律进这一组，分组里只留按状态出现的动态
+   * 提示。区间与读法取自 lib/config.js 的 spanRange()（界面上不许出现第二份数字）。
+   * 最后那句「划掉应用之后另有其人」讲的是原生常驻服务，浏览器里根本没有那个东西，
+   * 所以按 native 分支 —— 与「原生能力边界」那条同一手法，别对着网页用户念他没有的能力。 */
+  const 刷新 = [
+    '刷新间隔可以自定义，能落在 ' + spanRange() + ' 之间（填出格的东西会被夹到边界，并在这一栏下面说一句按多少记的）。' +
+      '右边那颗开关只管启停：关着时你填的数值还留着，下次开不用重填；默认是关（' +
+      humanSpan(DEFAULT_CFG.autoRefresh) + ' 是打开开关时先给你填上的那个值）。',
+    '这一拍是页面侧的，屏幕不在前台时它什么都不做 —— 后台标签本来也被浏览器节流到每分钟一个宏任务，白跑一遍整屏重绘而已。'
+  ];
+  if (native) 刷新.push('划掉应用之后另有其人：手机壳里那个常驻服务每小时重建一次通知、预警开着每 10 分钟只查预警，那两拍与这里的间隔无关。');
+  out.push({ id: 'refresh', title: '自动刷新与轮播', lines: 刷新 });
+
   /* 第四条原来是写死的三句，其中一句直接是错的：「华为天气接口只在壳里用」—— 那个城市榜接口
-   * 浏览器与壳同样可用（见 MEMORY 里 hwAqi 那条实测）；「国控站与预警来自 nmc.cn」对墨迹和自定义
+   * 浏览器与壳同样可用（见 MEMORY 里 hwAqi 那条实测）；「国控站与预警来自 nmc.cn」对自定义那一源
    * 也根本不对。署名这一栏比别条更要跟着实际走 —— 它的作用就是「这一组数究竟问的谁」，
    * 挂错名字等于把出处伪造了一遍。所以这一条也按 cap 现推。 */
   const u = [];

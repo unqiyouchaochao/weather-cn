@@ -23,6 +23,7 @@ import * as rank from './ui/rank.js';
 import * as ui from './ui.js';
 import * as favorite from './favorite.js';
 import { doLocate, onVisibility } from './locate.js';
+import { setupAutoRefresh, stopAutoRefresh } from './refresh.js';
 import * as suggest from './suggest.js';
 import * as share from './share.js';
 import { setTab } from './tabs.js';
@@ -33,7 +34,13 @@ import { init } from './boot.js';
 
 function bindEvents() {
   el.brandIcon.innerHTML = svgIcon('sun');
-  document.addEventListener('visibilitychange', onVisibility);
+  /* 定位那一拍自己清自己排（见 locate.js 的 onVisibility）；刷新这一拍由这里代劳 ——
+   * 让它反过来 import refresh.js 就成环了，refresh.js 本来就要 setupAutoLocate。
+   * 两边都走 setupAutoRefresh 这一个出口：它顺带按同一份配置重建定位那一拍。 */
+  document.addEventListener('visibilitychange', () => {
+    onVisibility();
+    if (document.hidden) stopAutoRefresh(); else setupAutoRefresh();
+  });
 
   el.searchBtn.addEventListener('click', () => { suggest.hideSuggest(); query({ city: el.cityInput.value }); });
   el.locBtn.addEventListener('click', () => doLocate(false));
@@ -110,7 +117,11 @@ function bindEvents() {
   }
 
   el.modal.addEventListener('click', e => { if (e.target === el.modal) settings.closeSettings(); });
-  el.providerSel.addEventListener('change', settings.onProviderChange);
+  el.providerSel.addEventListener('change', settings.resync);
+  /* 通知与预警那两栏的提示按「用过没有」收起，开关一拨就得重算 —— 不绑这两下的话，
+   * 把常驻通知关掉之后那句说明不会自己回来，要等下一次打开面板才改口。 */
+  el.notifyOn.addEventListener('change', settings.resync);
+  el.alertOn.addEventListener('change', settings.resync);
   /* 口径那一栏也要重画声明：第一条讲的是「当前口径」，不跟着改就会挂着上一套的说法。 */
   el.aqiStdSel.addEventListener('change', settings.onStdChange);
   el.saveBtn.addEventListener('click', settings.saveSettings);
