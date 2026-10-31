@@ -2179,4 +2179,88 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
     '温度=' + 温度() + '，可见块数=' + 首页有几块() + '，标题=' + 标题().slice(0, 18));
 }
 
+/* ---------- 中文现象 → 图标这张表要一级一级走得通（2026-10-12 真机装机发现）
+ * 屏上写着「多云」、画着一枚纯太阳，就是这张表错了一档。钉四档 + 两个排序陷阱：
+ * 「晴间多云」必须排在「晴」之前（否则被 /晴/ 吃掉），「雷」必须排在「雹」之前。
+ * 数字码那三张表（WMO / OWM / WWO）说的是同一批词，所以顺带比一次同一个词在两路下的图标 —— 不一致就是漂移。 */
+{
+  const w = await import('/weather-app/js/lib/weather.js');
+  const 该是 = [['晴', 'sun'], ['晴间多云', 'sun-02'], ['多云', 'cloudy'], ['少云', 'cloudy'],
+    ['阴', 'cloud'], ['多云转晴', 'sun'], ['雷阵雨伴冰雹', 'thunderstorm'], ['阵雨', 'rain-02']];
+  const 错 = 该是.filter(([文, 图]) => w.iconFromText(文) !== 图)
+    .map(([文, 图]) => 文 + '→' + w.iconFromText(文) + '(该' + 图 + ')');
+  const 同词 = w.iconFromText('晴间多云') === w.wmo(1).icon && w.iconFromText('多云') === w.wmo(2).icon;
+  push('中文现象四档图标各就各位，且与数字码表对同一个词给出同一个图标',
+    错.length === 0 && 同词,
+    错.length ? 错.join('、') : '四档 晴/晴间多云/多云/阴 = sun·sun-02·cloudy·cloud，' +
+      '与 WMO 0/1/2/3 逐词一致=' + 同词);
+}
+
+/* ---------- 主卡右上角那一角不许被压住（2026-10-12 真机装机发现）
+ * `.star` 绝对定位在卡片右上角，它不在 `.current-head` 那条 flex 行里，所以那一行压根不知道要给它让位：
+ * 行的右端只到卡片内容边（离 padding-box 右沿 22px），星的最左在 48px —— 水平重叠 26px，
+ * 64px 的天气图标被星压掉一角，顺带还被 flex 从 64 压到 56（`.cur-ic` 当时没有 flex-shrink:0）。
+ * 量的是「两个矩形的交」而不是「图标宽度」：只卡宽度的话，把预留量从 .current-head 挪去给 .star 加 margin
+ * 照样过线，而重叠会跟着回来。 */
+{
+  const 星 = document.querySelector('.star');
+  const 图标 = document.querySelector('.cur-ic');
+  const 行 = document.querySelector('.current-head');
+  const a = 图标.getBoundingClientRect(), b = 星.getBoundingClientRect();
+  const 交 = !(a.right <= b.left || b.right <= a.left || a.bottom <= b.top || b.bottom <= a.top);
+  /* 压窄那一半要单独挤一次才量得到：正常视口下这一行离装不下还远，`flex-shrink` 少写一半也照样过线，
+   * 而真机 376 CSS px 那一档确实被压成了 56。按到 120px 是**故意压过头**：不管当时那串地址长短，
+   * 这个宽度下「地址 + 64 图标 + 36 预留」一定装不下，谁没写 shrink:0 谁就被削。 */
+  const 原宽 = 行.style.width;
+  行.style.width = '120px';
+  const 挤窄后 = Math.round(图标.getBoundingClientRect().width);
+  行.style.width = 原宽;
+  push('主卡的天气图标与收藏星不相交，行被按窄时图标也不许被压扁',
+    !交 && 挤窄后 === 64,
+    '图标 ' + Math.round(a.left) + '–' + Math.round(a.right) + '，星 ' +
+    Math.round(b.left) + '–' + Math.round(b.right) + '，相交=' + 交 +
+    '；行按到 120px 之后图标宽 ' + 挤窄后);
+}
+/* ---------- 2026-10-31 从 v139 基石捞回的第二组：注册表那两条不变量
+ * 基石上还有两条闸与墨迹无关、被测的东西今天还活着，v153 恢复时跟墨迹一起被削掉了，今天补回来：
+ * ① 每个「靠坐标取数」的源必须自带一条 城市名→坐标 的路。`query.js` 里那句
+ *    `await provider.geocode(key, cfg.key)` 只被 try/catch 兜着，缺了它屏上就是
+ *    `provider.geocode is not a function` 这种内部错（2026-09-29 真机在框里打「郑州」回车量到的）。
+ * ② 设置里通知与预警那两行说明必须跟着「当前选中的源」改口，判据落在注册表的
+ *    `cap.background` / `cap.alert` 两个位上，不是散在文案里的字符串。
+ *    墨迹那一条（它给得出预警、给不出后台 JSON 配方）随整源下架一起作废，不捞。 */
+{
+  const { getProvider } = await import('/weather-app/js/providers/index.js');
+  const noGeo = ['open-meteo', 'nmc', 'wttr-in'].filter(id => {
+    const p = getProvider({ provider: id });
+    return !p.cap.byCityName && typeof p.geocode !== 'function';
+  });
+  push('每一个「靠坐标取数」的源都必须有检索器，否则用户打城市名时看到的是内部错',
+    noGeo.length === 0, '缺检索器的源=' + JSON.stringify(noGeo));
+}
+
+{
+  const { providerBackground, providerGivesAlerts } = await import('/weather-app/js/providers/index.js');
+  /* 后台那两句只在「拿得到原生通知插件」时才说，先把这一个变量钉住再问说明。
+   * alertSupported() 问的还是那一个 WeatherNotify（它有 alert 方法），不是另开一个插件。 */
+  const 原有 = window.Capacitor;
+  window.Capacitor = { isNativePlatform: () => true, Plugins: { WeatherNotify: {
+    show() {}, clear() {}, keepAlive() { return Promise.resolve(); }, alert() { return Promise.resolve({}); }
+  } } };
+  const 选 = document.getElementById('providerSel');
+  const nh = () => document.getElementById('notifyHint').textContent;
+  const ah = () => document.getElementById('alertHint').textContent;
+  const say = async id => { 选.value = id; 选.dispatchEvent(new Event('change')); await sleep(160); };
+  await say('open-meteo');
+  push('换成不给预警的源：说明要直说这一栏不会出现，不许留一句「跟着报文一起核对」骗人',
+    /不会出现|不给/.test(ah()) && providerGivesAlerts('open-meteo') === false, ah().slice(0, 44));
+  await say('nmc');
+  push('切回「中国天气」：后台每小时自取、每 10 分钟盯预警这两句要回得来',
+    /每小时自取一次/.test(nh()) && /每 10 分钟自取一次/.test(ah()) && providerBackground('nmc') === true,
+    '通知=' + nh().slice(0, 30) + '…预警=' + ah().slice(0, 40));
+  if (原有 === undefined) delete window.Capacitor; else window.Capacitor = 原有;
+  选.value = 'nmc';
+  选.dispatchEvent(new Event('change'));
+  await sleep(160);
+}
 window.__CHECKS__ = R;

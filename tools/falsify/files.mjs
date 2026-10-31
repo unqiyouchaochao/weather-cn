@@ -37,4 +37,5 @@ export const F = {
   rank: 'weather-app/js/ui/rank.js',
   themes: 'weather-app/js/lib/themes.js',
   wthr: 'weather-app/js/lib/weather.js',
+  setAlerts: 'weather-app/js/settings/alerts.js',
 };

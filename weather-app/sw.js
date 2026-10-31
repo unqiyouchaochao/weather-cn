@@ -8,7 +8,7 @@
  * 2026-10-20：把源码注释里指向开发者本机的那条地址链（县/镇/路三级与它的拼音）打成 ×× —— 纯注释，行为一个字节都没变，
  *   但注释在 js 里就是改字节，按上面那条规矩照样升一号。同一天第二版：geo.js 里引用的那份检索夹具
  *   整个换成合成件（地名、osm_id、坐标三样一起改），文件名也跟着换 —— 又是一次纯注释/引用改动，号继续走。 */
-const CACHE = 'weather-studio-v1';
+const CACHE = 'weather-studio-v2';
 /* SHELL:BEGIN 这份清单由 tools/gen-shell.mjs 生成，别手工增删 */
 const SHELL = [
   './',

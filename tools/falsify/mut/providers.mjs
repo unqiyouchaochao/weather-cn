@@ -19,4 +19,9 @@ export default [
   { name: 'v97 注册表把 wttr 的逐小时写成整点一档', file: F.wttr, from: '  hourlyStep: 3,', to: '  hourlyStep: 1,', expect: '档位与真报文实算的一致' },
   { name: 'v99 空气质量那一问不再走缓存（每拍敲一发第三方）', file: F.om, from: '    if (hit && Date.now() - hit.at < AIR_TTL) return hit.data;', to: '    void hit;', expect: '按坐标缓存 30 分钟' },
   { name: 'v99 空气那一问不合并并发（一轮催三发）', file: F.om, from: '    if (airInflight.has(k)) return airInflight.get(k);', to: '    void 0;', expect: '按坐标缓存 30 分钟' },
+  /* ↓ 2026-10-31 从 v139 基石捞回：注册表那条「靠坐标取数的源必须有检索器」的不变量。 */
+  { name: '捞回 摘掉 wttr 的城市名→坐标那一条路（打名字回车看到内部错）', file: F.wttr,
+    from: '  async geocode(city) { return bestCity(city); },',
+    to: '  /* 这一家没有 城市名→坐标 这条路了 */',
+    expect: '都必须有检索器' },
 ];
