@@ -74,6 +74,32 @@ const run = () => {
   const total = (out.match(/^PASS/gm) || []).length + fails.length;
   return { total, fails, 明细, out };
 };
+/* 0 条先重量同一处几趟，再判通道坏。
+ * 缘由（2026-11-01 分两路并行量 94 处实测）：另一路每处都重启一次无头 Edge，抢不过那一拍 CPU 时，
+ * 页面里异步那一段还没落地就有人对 null 取样式 ⇒ 检查脚本当场抛掉、一条断言都不回来。
+ * 两路各在第 2 处和第 8 处撞上同一种形状（停在第 16 条 + `Cannot set properties of null` +
+ * `getComputedStyle … not of type 'Element'`），单点复现同一处变异却是 红 ✓ / exit 0 ——
+ * 也就是说那是**通道的瞬时故障**，不是这条断言是摆设。
+ * 这不松任何判据：改坏的那一行还原后才重试同一处，几趟全是 0 条照旧退 96。 */
+const 重试上限 = Math.max(1, Number(process.env.FALSIFY_RETRY || 3));
+/* 一条完整跑批该回多少条，由第一趟自己量出来（不在这里写死条数，否则套件一变就又成了一个要手改的地方）。
+ * 后面任何一趟回得比这个少，就是页面中途抛了 —— 结果表只填了一半，那种「没红」既不是绿也不是红。 */
+let 满趟条数 = 0;
+function runTolerant(标签 = '末趟干净版') {
+  let res;
+  for (let 趟 = 1; 趟 <= 重试上限; 趟++) {
+    res = run();
+    const 齐 = res.total > 0 && res.total >= 满趟条数;
+    if (res.total > 满趟条数) 满趟条数 = res.total;
+    if (齐) {
+      if (趟 > 1) console.log('  （' + 标签 + '第 ' + 趟 + ' 趟才落地，前 ' + (趟 - 1) + ' 趟没量全）');
+      return Object.assign(res, { 半截: false });
+    }
+    if (趟 < 重试上限) console.log('  （' + 标签 + '第 ' + 趟 + ' 趟' +
+      (res.total ? '只回来 ' + res.total + ' 条，比已量到的 ' + 满趟条数 + ' 条少 —— 页面中途抛了，' : '一条都没回来 —— 通道没落地，') + '重试同一处）');
+  }
+  return Object.assign(res || { total: 0, fails: [], 明细: [], out: '' }, { 半截: true });
+}
 
 let bad = 0;
 
@@ -221,11 +247,11 @@ for (const m of picked) {
   if (!orig.includes(from)) { console.log('跳过（没找到要改的那句）：' + m.name); bad++; continue; }
   writeFileSync(p, orig.replace(from, to), 'utf8');
   let res;
-  try { res = run(); } finally { writeFileSync(p, orig, 'utf8'); }
+  try { res = runTolerant(m.name); } finally { writeFileSync(p, orig, 'utf8'); }
   /* 中途就量到 0 条 = 通道坏了（端口被另一条 falsify 占了 / 页面没起来 / 断言脚本抛错），
    * 继续跑下去只会把整批都判成「还是绿的」。停，把这一处的源还原干净再停。 */
-  if (!res.total) {
-    console.log('通道坏了：这一处改完之后**一条断言都没回来**（不是全绿）。' +
+  if (res.半截) {
+    console.log('通道坏了：这一处改完之后' + (res.total ? '只回来 ' + res.total + ' 条，比已量到的少（页面中途抛了，结果表只填一半）' : '**一条断言都没回来**') + ' —— 这都不是全绿。' +
       '0 条的原因不唯一（页面没起来 / 服务端口不对 / 断言脚本抛错 / 有第二条在抢通道），先看下面这几行日志尾部。\n' +
       res.out.split('\n').filter(l => /THREW|EXC:|超时|没有|Error/.test(l)).slice(0, 6).join('\n'));
     process.exit(96);
@@ -238,11 +264,11 @@ for (const m of picked) {
   if (!hit) bad++;
 }
 console.log('\n还原后再跑一遍干净版：');
-const clean = run();
+const clean = runTolerant();
 /* 「一条都没出」不是全绿 —— 2026-10-01 就是这么被骗过一次：断言脚本里 `const disc` 重复声明，
  * SyntaxError 让整张表一行都不渲染，而这里只看 `fails.length`，于是报成"红 0（全绿）"。
  * 计数为 0 一定是通道坏了（脚本抛错 / 页面没起来 / 端口被占），必须非零退出。 */
-if (!clean.total) {
+if (clean.半截) {
   console.log('  一条断言都没出 —— 这不是绿，是测量通道坏了。日志尾部：\n'
     + clean.out.split('\n').filter(l => /THREW|EXC:|超时|没有/.test(l)).slice(0, 6).join('\n'));
   process.exit(bad + 101);
