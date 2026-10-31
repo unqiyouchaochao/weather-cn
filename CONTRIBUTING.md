@@ -51,7 +51,7 @@ Service Worker 是 cache-first。验证改动时换一个新端口（换 origin 
 | `node tests/theme-pkg.test.mjs` | 主题插件包的六道离线闸 | 纯 Node |
 | `node tools/theme-make.mjs init <id> [显示名]` / `… build <id>` | 起一套主题工作目录（底从范式 §0 刮，不留第二份）、打包并立刻过闸 | 纯 Node；工作目录默认落在**仓库外**，往仓内写要显式 `--allow-in-repo` |
 | `node tools/theme-pkg-check.mjs 你的.themepkg.json` | 单个主题包能不能导入、最差配色过不过 AA | 纯 Node；可加 `--explain` / `--fix` |
-| `node tools/run-checks.mjs` | 浏览器回归：注入同源 iframe 量真 DOM / 真 computed style / 真模块 | 需要先起 `npm run serve:checks`，并本机有 Edge/Chrome；当前基线 107 条，约 60~70 秒 |
+| `node tools/run-checks.mjs` | 浏览器回归：注入同源 iframe 量真 DOM / 真 computed style / 真模块 | 需要先起 `npm run serve:checks`，并本机有 Edge/Chrome；当前基线 108 条，约 60~70 秒 |
 | `node tools/falsify.mjs` | 逐条把实现改坏，确认对应断言会红，再还原 | **很慢**（历史基线整趟约 2.5 小时；本树 v1 尚未跑全量，处数以开局打印为准），独占锁，见下 |
 | `node tests/device-check.mjs [serial]` | 装机后的真机五件验收 | 需要 adb；锁屏/通知栏遮挡时会拒绝出数 |
 | `node tests/icon-switch.mjs [serial]` | 桌面图标四套预设逐个切，并问系统实际生效的是哪个入口 | 真机，可选 |
@@ -61,7 +61,7 @@ Service Worker 是 cache-first。验证改动时换一个新端口（换 origin 
 
 几条判读规则：
 
-- **断言数以命令输出为准**。旧 README / 账本里的 127 条、130 锚点是墨迹源下架前的基线；当前树是 **107 条 / 94 锚点**（2026-10-31 从 v139 基石捞回五条闸：四档图标表、星位让位、检索器不变量、说明随源改口两条）。差的是整源移除后删掉的断言与锚点，不是漏跑，也不要为了凑数补无意义断言。
+- **断言数以命令输出为准**。旧 README / 账本里的 127 条、130 锚点是墨迹源下架前的基线；当前树是 **108 条 / 94 锚点**（2026-10-31 从 v139 基石捞回五条闸：四档图标表、星位让位、检索器不变量、说明随源改口两条）。差的是整源移除后删掉的断言与锚点，不是漏跑，也不要为了凑数补无意义断言。
 - `run-checks` 的退出码：`0~N` 是红条数，`200~203` 是通道坏了（200 找不到浏览器 · 201 无结果 · 202 看门狗 · 203 问不到服务）。判红没红，读它逐条打印的 `PASS` / `FAIL` 比只读退出码稳。
 - 少数断言要等真实第三方接口（例如全国空气质量榜），偶发超时会红一次。先隔一分钟重跑；重跑仍红再看代码，**不要把判据改成「有 N 行就算过」**。
 - `falsify` 会改源文件再还原，**独占这棵树**，不要和其他跑批、真机脚本或另一套回归并行。处数以它开局打印的为准。中途被打断时先 `git status` 看残留，只还原它改过的文件；**自己还有未提交改动时不要直接 `git checkout -- .`**。

@@ -87,7 +87,14 @@ const 树版 = (() => {
     return v ? Number(v[1]) : Infinity;
   } catch (e) { return Infinity; }
 })();
-const 适用 = m => { const v = /^v(\d+)\s/.exec(m.name); return !v || Number(v[1]) <= 树版; };
+const 表内最小 = Math.min(...MUT.map(m => { const v = /^v(\d+)\s/.exec(m.name); return v ? Number(v[1]) : Infinity; }));
+/* 「比本树新」这句话，只有当本树那个号落在表里历史号的范围内才成立。
+ * 号段重开（2026-10-31 从 v153 那一档改成 v2）时这个比较没有意义：整表历史号都大于它，
+ * 于是 78 条被当成「还不属于这棵树」滤掉，而末尾照样跑一遍干净版报全绿 —— 就是本文件反复防的假绿。
+ * 老 worktree（v114 那种）号仍在历史区间内，照旧按原规矩筛；要强行按号筛就设 FALSIFY_BASELINE=114。 */
+const 基线 = process.env.FALSIFY_BASELINE ? Number(process.env.FALSIFY_BASELINE) : 树版;
+const 可比 = Number.isFinite(基线) && 基线 >= 表内最小;
+const 适用 = m => { if (!可比) return true; const v = /^v(\d+)\s/.exec(m.name); return !v || Number(v[1]) <= 基线; };
 const 全表适用 = MUT.filter(适用);
 const 比树新 = MUT.filter(m => !适用(m)).map(m => m.name);
 const picked = filter ? 全表适用.filter(m => (m.name + m.expect).includes(filter)) : 全表适用;
@@ -99,9 +106,9 @@ if (!picked.length) {
     '\n什么都没改、什么都没测，别把后面那句「全绿」当成逼红的证据。');
   process.exit(93);
 }
-console.log('本批要跑 ' + picked.length + ' 处。');
+console.log('本批要跑 ' + picked.length + ' 处。' + (可比 ? '' : '（不按版本号筛：本树 CACHE=v' + 树版 + '，而表里历史号从 v' + 表内最小 + ' 起 —— 号段重开过，这个比较没有意义；整表 ' + MUT.length + ' 处全跑。）'));
 if (比树新.length) {
-  console.log('（跳过 ' + 比树新.length + ' 条比这棵树（v' + 树版 + '）新的变异，它们要改的那句在本树里还不存在：\n  ' +
+  console.log('（跳过 ' + 比树新.length + ' 条比本树基线（v' + 基线 + '）新的变异，它们要改的那句在本树里还不存在：\n  ' +
     比树新.join('\n  ') + '\n  这不是失锚、也不是残留 —— 等那一路的代码进来再跑它们。）');
 }
 

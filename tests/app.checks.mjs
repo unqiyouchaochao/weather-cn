@@ -2263,4 +2263,31 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   选.dispatchEvent(new Event('change'));
   await sleep(160);
 }
+/* ---------- 2026-10-31 补回「预警出处跟着发信号的源走」那条断言
+ * 表里那条变异（`mut/view.mjs:31`「预警卡的出处又写死成中央气象台」）一直留着，可它钉的断言在
+ * v153 恢复时被当成墨迹件一起削掉了 —— 今天全量跑批当场暴露：改坏了却一条都不红（`红 ✗`）。
+ * 这是「只捞变异不捞断言」的反面：断言没了，闸就成了没人管的死条目。
+ * 基石那版比的是「墨迹 vs 中国天气」两家；今天只有中国天气给得出预警（`fromWarn` 自带 src），
+ * 单走真路分不出「硬写」与「派生」是两回事，所以按 `ui/alerts.js` 那一行的两个分支各问一次：
+ *   ① 报文自己带 src → 出处照 src 说，哪怕下拉框当前选的是别家（这才叫跟着发信号的源走）；
+ *   ② 报文不带 src → 退回「当前这一家」的名字，绝不许写死中央气象台。
+ * `listFrom` 是原样透传 `data.alert` 的，所以第 ② 支拿一条不带 src 的合成预警就量得到。 */
+{
+  const ui = await import('/weather-app/js/ui.js');
+  const alerts = await import('/weather-app/js/lib/alerts.js');
+  const scope = () => document.getElementById('alertScope').textContent;
+  const 带的 = alerts.fromWarn({ signaltype: '暴雨', signallevel: '黄色',
+    issuecontent: '这一条只在测试页里画一画，不会真的弹通知',
+    url: '/publish/alarm/44010041600000_20260929084142.html' }, '广州');
+  ui.renderAlerts({ alert: 带的 }, false, 'open-meteo');      // 故意把「当前源」说成另一家
+  const 照src = scope();
+  const 不带 = Object.assign({}, 带的, { id: 'synthetic-no-src' });
+  delete 不带.src;
+  ui.renderAlerts({ alert: 不带 }, false, 'open-meteo');
+  const 退回源 = scope();
+  ui.clearAlerts();                                            // 画完收回，别把后面几条的前提碰坏
+  push('预警卡那行出处跟着「发这条信号的源」走，不许统一挂成中央气象台',
+    照src === '中央气象台 · 中国天气' && 退回源.indexOf('中央气象台') < 0 && /Open-Meteo/.test(退回源),
+    '带 src 那条=' + 照src + '；不带 src 那条=' + 退回源);
+}
 window.__CHECKS__ = R;
