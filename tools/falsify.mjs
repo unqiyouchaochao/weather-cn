@@ -23,6 +23,7 @@ import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { tmpdir } from 'node:os';
+import { createHash } from 'node:crypto';
 /* 两张登记表都不再写在这份文件里：F（改哪个文件）在 tools/falsify/files.mjs，
  * 变异条目按族拆在 tools/falsify/mut/*.mjs（汇总口是 mut/index.mjs）。拆表的缘由写在那一族的文件头，
  * 一句话：两条改动线各加一条断言，抢的原本是同一个 ];。 */
@@ -40,12 +41,15 @@ const filter = process.argv[2];
  * 判活：Windows 上 `process.kill(pid, 0)` 对存在的进程不会抛（或抛 EPERM），不存在才抛 ESRCH。
  * 被打断（SIGTERM）时 exit 钩子不跑，锁会留下 —— 那种锁按 PID 判活自动接管，并提示先查残留。 */
 {
-  const LOCK = join(tmpdir(), 'qoder-weather-falsify.lock');
+  /* 锁按「哪一棵树」命名，不再是全机一个固定名：这条锁真正防的是「两条批改同一批源文件」，
+   * 而分片并行时每片有自己的 worktree，互不碰对方的文件 —— 那就该允许它并行。
+   * 同一棵树第二次起批照样被 97 挡住，那才是这条锁的本意。 */
+  const LOCK = join(tmpdir(), 'qoder-weather-falsify.' + createHash('sha1').update(ROOT).digest('hex').slice(0, 10) + '.lock');
   const 活着 = pid => { try { process.kill(pid, 0); return true; } catch (e) { return e.code === 'EPERM'; } };
   if (existsSync(LOCK)) {
     const 前人 = Number(String(readFileSync(LOCK, 'utf8')).trim());
     if (前人 && 活着(前人)) {
-      console.log('已经有一批 falsify 在跑（PID ' + 前人 + '，锁：' + LOCK + '）。\n' +
+      console.log('已经有一批 falsify 在跑这棵树（PID ' + 前人 + '，树：' + ROOT + '，锁：' + LOCK + '）。\n' +
         '两条并行会互相把源文件改成对方的「改坏态」，两边跑出来的都是假结论 —— 等它跑完，' +
         '或确认那个进程真不在了再删锁重跑。');
       process.exit(97);
@@ -60,7 +64,7 @@ const filter = process.argv[2];
 }
 const run = () => {
   const r = spawnSync(process.execPath, [join(ROOT, 'tools', 'run-checks.mjs')],
-    { cwd: ROOT, encoding: 'utf8', env: { ...process.env, CDP_PORT: '9420', CHECKS_BUDGET: '180000' }, shell: false });
+    { cwd: ROOT, encoding: 'utf8', env: { ...process.env, CDP_PORT: process.env.CDP_PORT || '9420', CHECKS_BUDGET: '180000' }, shell: false });
   const out = (r.stdout || '') + (r.stderr || '');
   const fails = [...out.matchAll(/^FAIL\s+(.+?)\s+⟵/gm)].map(m => m[1]);
   /* 红条后面的那句「⟵ 实测…」是判据的来源：只有名字的话，一条抖动的计时敏感断言
@@ -97,7 +101,21 @@ const 可比 = Number.isFinite(基线) && 基线 >= 表内最小;
 const 适用 = m => { if (!可比) return true; const v = /^v(\d+)\s/.exec(m.name); return !v || Number(v[1]) <= 基线; };
 const 全表适用 = MUT.filter(适用);
 const 比树新 = MUT.filter(m => !适用(m)).map(m => m.name);
-const picked = filter ? 全表适用.filter(m => (m.name + m.expect).includes(filter)) : 全表适用;
+/* 分片：FALSIFY_SHARD=i/n 只跑第 i 片（按下标对 n 取模，各片合起来正好是整表，不重不漏）。
+ * 每片必须配一棵自己的 worktree + 自己的 SERVE_PORT + 自己的 CDP_PORT：
+ * 前两条保证没人改同一批源文件、没人量别人的字节，第三条保证两个头无头 Edge 不抢同一个调试端口。 */
+const 分片 = (() => {
+  const v = process.env.FALSIFY_SHARD;
+  if (!v) return null;
+  const [i, n] = String(v).split('/').map(Number);
+  if (!Number.isInteger(i) || !Number.isInteger(n) || n < 1 || i < 0 || i >= n) {
+    console.log('FALSIFY_SHARD 要写成 i/n（例如 0/2、1/2），现在拿到的是「' + v + '」');
+    process.exit(99);
+  }
+  return { i, n };
+})();
+const 本树适用 = 分片 ? 全表适用.filter(m => MUT.indexOf(m) % 分片.n === 分片.i) : 全表适用;
+const picked = filter ? 本树适用.filter(m => (m.name + m.expect).includes(filter)) : 本树适用;
 /* 关键字打空了 = 这一批一处变异都没做，而末尾照样会跑一遍干净版、报「126 条全绿」、`exit 0`。
  * 2026-10-06 真撞上：过滤词写成「记账」，可它只出现在注释里、没有一条**名字**含它，
  * 那一批在日志里就是一段空白加一句全绿 —— 看着像跑过了。空批次必须当场停。 */
@@ -106,7 +124,7 @@ if (!picked.length) {
     '\n什么都没改、什么都没测，别把后面那句「全绿」当成逼红的证据。');
   process.exit(93);
 }
-console.log('本批要跑 ' + picked.length + ' 处。' + (可比 ? '' : '（不按版本号筛：本树 CACHE=v' + 树版 + '，而表里历史号从 v' + 表内最小 + ' 起 —— 号段重开过，这个比较没有意义；整表 ' + MUT.length + ' 处全跑。）'));
+console.log('本批要跑 ' + picked.length + ' 处' + (分片 ? '（分片 ' + 分片.i + '/' + 分片.n + '，CDP_PORT=' + (process.env.CDP_PORT || 9420) + '，树=' + ROOT.replace(/^.*\\/, '') + '）' : '') + '。' + (可比 ? '' : '（不按版本号筛：本树 CACHE=v' + 树版 + '，而表里历史号从 v' + 表内最小 + ' 起 —— 号段重开过，这个比较没有意义；整表 ' + MUT.length + ' 处全跑。）'));
 if (比树新.length) {
   console.log('（跳过 ' + 比树新.length + ' 条比本树基线（v' + 基线 + '）新的变异，它们要改的那句在本树里还不存在：\n  ' +
     比树新.join('\n  ') + '\n  这不是失锚、也不是残留 —— 等那一路的代码进来再跑它们。）');
