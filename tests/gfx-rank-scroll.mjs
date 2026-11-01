@@ -5,7 +5,7 @@
  * 1) 屏幕必须已解锁且通知栏收起 —— 锁屏时 input swipe 落到 keyguard 上，一帧都不呈现，
  *    于是 jank 0%、GPU 直方图全 0，看着像「修好了」，其实什么都没测（2026-09-24 就中招了）。
  * 2) 测量前后各查一次排名浮层真的开着、且 scrollTop 动了，否则这份数不是「滚动排名」的数。 */
-const A = 'D:/qder/Tools/android/Sdk/platform-tools/adb.exe';
+const { ADB: A } = await import('./adb-path.mjs');   // adb 从环境变量找（写死本机路径换机就静默哑掉）
 const SER = process.argv[3] || '<红米 serial>';
 const PKG = 'com.weatherstudio.app', N = 24;
 const { execFileSync } = await import('node:child_process');
