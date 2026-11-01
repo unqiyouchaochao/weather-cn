@@ -8,8 +8,14 @@
 import { F } from '../files.mjs';
 
 export default [
-  /* ↓ 2026-09-29「选中墨迹屏上一动不动」这一轮：坐标点 → 地名 → 各家出处，一条一个坑 */
-  { name: '「X县」的类别又不参与排序（搜新兴县拿到吉林那座）', file: F.geo, from: 'score: rank + nameBonus(p.name, q) + classBonus(q, p.type)', to: 'score: rank + nameBonus(p.name, q)', expect: '必须落在广东那座县上' },
+  /* ↓ 2026-09-29「坐标点 → 地名 → 各家出处」这一轮：一条一个坑。
+   * 2026-11-01 加了下面那把「原词那一发命中 +40」之后，这里**单拆 classBonus 已经量不出来了**：
+   * 全量逼红那一趟这一条报的是「共 0 红 / 110 条」—— 两把 +40 叠在同一行，撤掉一把，另一把刚好把广东那座县顶住。
+   * 于是这一条改成一次拆两把（盯的还是同一句断言）。诚实的代价记在账本里：classBonus 单独失效，现在没有任何断言看得见。 */
+  { name: '「X县」的类别与原词命中都不参与排序（搜新兴县拿到吉林那座）', file: F.geo,
+    from: 'score: rank + nameBonus(p.name, q) + classBonus(q, p.type) + (variant === q ? 40 : 0)',
+    to: 'score: rank + nameBonus(p.name, q)',
+    expect: '必须落在广东那座县上' },
   /* ↓ 2026-10-01 v97「数据源体检四条修复」。这一组每处改坏的都是**当天量出来的那个真缺陷**，
    *   不是随手翻一个常量：路名顶掉本级市就是兰州那一晚的 92/62，繁体漏字就是 BDC 真回的「蘭州市」。 */
   { name: 'v97 城市榜退回整串扫描（路名里的「张掖」顶掉本级市）', file: F.hw, from: '    if (!ADMIN_SEG.test(seg) || NOT_CITY_SEG.test(seg)) return;', to: '    if (false) return;', expect: '路名不许顶掉本级市' },
