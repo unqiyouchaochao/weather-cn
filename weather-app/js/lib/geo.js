@@ -61,7 +61,7 @@ function omSearch(variant, signal, q) {
       return {
         lat: g.latitude, lon: g.longitude, name: g.name,
         admin: g.admin1 || '', country: g.country || '', src: 'open-meteo',
-        rank, score: rank + nameBonus(g.name, q)
+        rank, score: rank + nameBonus(g.name, q) + (variant === q ? 40 : 0)   // 与 photonSearch 同一把尺，见那边那段真机字节
       };
     }));
 }
@@ -77,7 +77,14 @@ function photonSearch(variant, signal, q) {
           lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0],
           name: p.name || p.city || p.county || variant,
           admin: p.state || p.city || '', country: p.country || '', src: 'photon',
-          rank, score: rank + nameBonus(p.name, q) + classBonus(q, p.type)
+          /* 原词那一发的命中加权，与同名加分同权。2026-11-01 华为真机字节：搜「武侯」时 Open-Meteo
+           * 四个变体全 0 条，只剩 Photon；四川那座「Wuhou」(district) 在**四发里每发都排第一**，而陕西
+           * 那座被 OSM 标成 `city`(80)、只在「武侯县 / 武侯市」这两发我们替用户补出来的写法里才冒出来。
+           * 手机上 Photon 回英文名，同名加分对两条都是 0，于是旧排序让 80 压过 48 —— 屏上「Wuhou ·
+           * Shaanxi Province」、坐标 33.1503,106.6146、空气徽章写着「勉县」，差着六百公里。
+           * 等级只回答「多大」，不回答「用户打的那一字面有没有答出它」；补变体是为了提召回，不该反过来
+           * 盖掉原词那一发的相关性判断。 */
+          rank, score: rank + nameBonus(p.name, q) + classBonus(q, p.type) + (variant === q ? 40 : 0)
         };
       }));
 }
@@ -150,8 +157,14 @@ export function searchCities(q, signal) {
 /* 旧表里躺着的是**按错的排序挑出来的城市**（「××县」→ 吉林那座），而这一张表 30 天不过期 ——
  * 光改代码不改表名，用户搜过一次的那座错城会一直留在屏上。所以换名重来，旧表直接扔掉：
  * 检索冷了重问一发也就 850ms，拿错省的坐标当用户这儿的不行（宁缺勿错）。 */
-try { localStorage.removeItem('weather-studio-geo'); } catch (e) { /* 读不到就当没有 */ }
-const GEO_LS = 'weather-studio-geo2';
+/* 换表名 = 把旧表整个扔掉。这张表按「城市名 → 坐标」存 30 天，而**挑哪一座是按当时的排序算的**：
+ * 排序一改，旧表就会长期躺着挑错的那座。2026-11-01 华为装机实测过一遍 —— 加上「原词命中」那把尺之后，
+ * 屏上「武侯」仍是陕西那座（33.1503,106.6146），因为 geo2 里存着上一次按旧排序挑的结果；手清了表才回四川。
+ * 所以**每次动检索排序都必须升一次表名**，光改代码不升名等于没改。已作废的两张键一并清掉。 */
+for (const 旧表 of ['weather-studio-geo', 'weather-studio-geo2']) {
+  try { localStorage.removeItem(旧表); } catch (e) { /* 读不到就当没有 */ }
+}
+const GEO_LS = 'weather-studio-geo3';
 const GEO_TTL = 30 * 864e5;   // 30 天
 const GEO_MAX = 120;          // 条数上限，超了丢最旧的
 let geoMem = null;

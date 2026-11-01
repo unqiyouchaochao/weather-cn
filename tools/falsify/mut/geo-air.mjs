@@ -18,5 +18,17 @@ export default [
   { name: 'v97 档位不再从报文里量（写死成一档）', file: F.hr, from: '    if (d > 0 && (s === 0 || d < s)) s = d;', to: '    void d;', expect: '窗口标题写明' },
   { name: 'v97 两源都没答时不再标记（又把锅甩给用户的用词）', file: F.geo, from: '  list.silent = asked > 0 && failed === asked;', to: '  list.silent = false;', expect: '检索源这一轮没有回答' },
   { name: 'v97 没答的那一轮仍被共享 10 秒（重试拿回同一个空数组）', file: F.geo, from: '  p.then(r => { if (r && r.silent && inflight.get(q) === p) inflight.delete(q); }, () => {});', to: '  void 0;', expect: '并重试一发' },
+  /* ↓ 2026-11-01 华为装机录下来的真形状：撤掉「原词那一发命中」这一把尺，四川那座就又被陕西那座
+   *   city(80) 顶掉。别拿等级表开刀 —— 我第一版就是抬了区/县却压不住 city，改错了地方。 */
+  { name: '2026-11-01 真机 原词那一发的命中不再加权（补出来的写法反过来盖掉原词）', file: F.geo,
+    from: 'score: rank + nameBonus(p.name, q) + classBonus(q, p.type) + (variant === q ? 40 : 0)',
+    to: 'score: rank + nameBonus(p.name, q) + classBonus(q, p.type)',
+    expect: '不许被我们补出来的写法捞到的更高行政级别点顶掉' },
+  /* ↓ 同一次改动的另一半：表名不升，旧表就还在替新排序说话（装机实测屏上仍是陕西那座）。
+   *   改坏方式就是把 GEO_LS 改回旧键 —— 于是 bestCity 直接端出旧表里的错城。 */
+  { name: '2026-11-01 真机 改了排序却没作废按名缓存（旧表继续替新排序说话）', file: F.geo,
+    from: "const GEO_LS = 'weather-studio-geo3';",
+    to: "const GEO_LS = 'weather-studio-geo2';",
+    expect: '旧的按名缓存不许再把那座错城端出来' },
   { name: 'v99 城市榜 TTL 退回 10 分钟（43KB 每十分钟重下一遍）', file: F.hw, from: 'const TTL = 30 * 60 * 1000;', to: 'const TTL = 10 * 60 * 1000;', expect: 'TTL 是 30 分钟' },
 ];

@@ -1268,6 +1268,79 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
     err ? '抛错：' + err : '首位=' + fmt(top) + '；被它压下去的依次是 ' + cands.slice(1, 4).map(fmt).join(' 、 '));
 }
 
+/* 2026-11-01 华为 LNA-AL00 装机撞出来的第二条顶法，字节是从那台机的 WebView 里录下来的（`probe13`）：
+ * 搜「武侯」时 **Open-Meteo 四个变体全 0 条**（以前它有武侯区那一条，收录取决于上游），只剩 Photon。
+ * 四川那座 `district`「Wuhou」在**四发里每发都排第一**；陕西那座被 OSM 标成 **`city`(80)**，只在「武侯县 /
+ * 武侯市」这两发我们替用户补出来的写法里才冒出来。手机上 Photon 回英文名，同名加分对两条都是 0，于是
+ * 等级表让 80 压过 48：屏上「Wuhou · Shaanxi Province」、坐标 33.1503,106.6146、空气徽章写着「勉县」。
+ * 我第一版把它当成「同名镇顶掉区」并去抬 PH_RANK 的区/县 —— 那是**证错了对象**：真凶是 city(80)，
+ * 抬区/县压不住它。所以这条断言喂的是真形状，判的是「原词那一发答出来的那座」优先。 */
+{
+  const geoApi = await import('/weather-app/js/lib/geo.js');
+  /* Photon 的真形状是 Feature：属性在 properties 里，而 photonSearch 第一刀就是 `osm_key === 'place'`
+   * —— 把属性平铺到顶层会被整条滤掉，喂进去就成了「什么都没答」的空测试（这一版就先红在这里）。 */
+  const 造 = (type, state, lon, lat) => ({ type: 'Feature',
+    properties: { type, osm_key: 'place', osm_value: type === 'city' ? 'city' : 'suburb',
+      name: 'Wuhou', state, country: 'China' },
+    geometry: { coordinates: [lon, lat] } });
+  const 川 = 造('district', 'Sichuan Province', 104.0406683, 30.6442131);   // 四发都有它，且每发第一
+  const 陕 = 造('city', 'Shaanxi Province', 106.614633, 33.150287);        // 只在补出来的两发里出现
+  const realFetch = window.fetch;
+  window.fetch = function (url) {
+    const u = String(url);
+    if (u.indexOf('photon.') >= 0) {
+      const 问 = decodeURIComponent((u.match(/[?&]q=([^&]*)/) || [])[1] || '');
+      const 给 = 问 === '武侯' ? [川] : [川, 陕];      // 照录下来的分布：原词那一发没有陕西那座
+      return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features: 给 }) });
+    }
+    if (u.indexOf('geocoding-api') >= 0) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) });
+    return realFetch.apply(window, arguments);
+  };
+  let cands = [], err = '';
+  try { cands = await geoApi.searchCities('武侯', new AbortController().signal); }
+  catch (e) { err = String(e && e.message || e); }
+  finally { window.fetch = realFetch; }
+  const 形 = c => [c.name, c.admin, c.src, 'rank' + c.rank, 'score' + c.score,
+    (c.lat || 0).toFixed(4) + ',' + (c.lon || 0).toFixed(4)].join('/');
+  const 顶 = cands[0] || {};
+  push('原词那一发答出来的那座，不许被我们补出来的写法捞到的更高行政级别点顶掉（武侯→四川，不是陕西）',
+    !err && Math.abs((顶.lat || 0) - 30.6442131) < 1e-3 && Math.abs((顶.lon || 0) - 104.0406683) < 1e-3,
+    err ? '抛错：' + err : '首位=' + 形(顶) + '；被它压下去的依次是 ' + cands.slice(1, 3).map(形).join(' 、 '));
+}
+
+/* 排序一改，那张「城市名 → 坐标」存 30 天的表就成了第二个真值：里面躺着的是**按旧排序挑的那座**。
+ * 装机实测撞到的：修完原词加分，屏上「武侯」仍是陕西 —— 代码是对的，是旧表在替它说话。
+ * 所以这张表必须跟着排序一起作废（换表名）。这一条就是钉住这件事：旧键里存着的错城不许再被端出来。
+ * 顺序要紧：先**全新导入一个 geo.js 实例**（带 query 绕开模块缓存），再往旧键里塞那座错城 —— 反过来的话
+ * 那份内存里的 geoMem 早就 memo 过了，改坏版也读不到我塞的东西，这条就变成「改不坏的断言」。 */
+{
+  const 旧键 = 'weather-studio-geo2';
+  localStorage.removeItem(旧键);
+  localStorage.removeItem('weather-studio-geo3');
+  const geoFresh = await import('/weather-app/js/lib/geo.js?stale=' + Date.now());
+  const 错城 = { lat: 33.150287, lon: 106.614633, name: 'Wuhou', country: 'China', admin: 'Shaanxi Province' };
+  localStorage.setItem(旧键, JSON.stringify({ 武侯: { at: Date.now(), v: 错城 } }));
+  const 川 = { type: 'Feature', properties: { type: 'district', osm_key: 'place', osm_value: 'suburb',
+    name: 'Wuhou', state: 'Sichuan Province', country: 'China' }, geometry: { coordinates: [104.0406683, 30.6442131] } };
+  const realFetch = window.fetch;
+  window.fetch = function (url) {
+    const u = String(url);
+    if (u.indexOf('photon.') >= 0) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features: [川] }) });
+    if (u.indexOf('geocoding-api') >= 0) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) });
+    return realFetch.apply(window, arguments);
+  };
+  let 拿 = null, 错 = '';
+  try { 拿 = await geoFresh.bestCity('武侯'); }
+  catch (e) { 错 = String(e && e.message || e); }
+  finally { window.fetch = realFetch; }
+  const 新键有条 = Object.keys(JSON.parse(localStorage.getItem('weather-studio-geo3') || '{}'));
+  push('检索排序改过之后，旧的按名缓存不许再把那座错城端出来（表必须整张作废）',
+    !错 && Math.abs((拿 && 拿.lat) - 30.6442131) < 1e-3 && 新键有条.indexOf('武侯') >= 0,
+    错 ? '抛错：' + 错 : 'bestCity 给回=' + JSON.stringify(拿) + '；新表 geo3 里的键=' + 新键有条.join(',') +
+      '；旧表 geo2 那份仍在（我们是作废它，不是迁移它）=' + (!!localStorage.getItem(旧键)));
+  localStorage.removeItem(旧键);
+}
+
 /* ---------- 站点映射：坐标 → 到底是哪个站 ----------
  * 拿错站不是「数值差一点」，是拿几百公里外那个省的天气当用户这里的，而且界面上看不出来。
  * 2026-09-27 由墨迹对照抓出：郑州的坐标被一个重名「河南」站（内蒙古）顶掉，码表里它俩同坐标。 */

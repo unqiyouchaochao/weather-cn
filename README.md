@@ -25,7 +25,7 @@ npm ci
 npm run serve            # http://127.0.0.1:8150/  只绑回环
 ```
 
-跑回归（108 条断言，注入到同源 iframe 里量真 DOM / 真 computed style / 真模块）：
+跑回归（109 条断言，注入到同源 iframe 里量真 DOM / 真 computed style / 真模块）：
 
 ```bash
 npm run serve:checks     # 以仓库根为根起服务，:8169
@@ -112,7 +112,7 @@ weather-app/     应用本体（纯静态，webDir；cap sync 整目录拷进 Ap
 src/styles/      给人改的样式分片（NN-*.css，一片一个板块），产物由 gen-styles 拼
 android/         Capacitor 壳 + 四个自写插件（图标切换 / 原生定位 / 常驻通知 / 后台保活）
 tools/           生成器与闸门（样式、SHELL 清单、变异表、主题包验收、出图、真机通道）
-tests/           108 条浏览器断言 + 纯 Node 测试 + 真机脚本 + 合成夹具
+tests/           109 条浏览器断言 + 纯 Node 测试 + 真机脚本 + 合成夹具
 docs/            开发账本（逐条取舍与实测记录）
 主题插件开发范式.md   写主题包之前读这一份
 ```
