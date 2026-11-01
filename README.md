@@ -99,8 +99,8 @@ npm run apk      # gen-styles → gen-shell → cap sync → gradlew assembleDeb
 - 桌面图标只能在那 4 套预设之间换（Android 图标是编译期资源）；各家启动器重画那一枚是异步的，
   华为实测要十几二十秒。
 - 降水量、风力等字段源没给就整行不画，也不会用别的字段估算 —— 宁缺勿错是这仓库的默认取向。
-- 出过的包都是 debug 签名（`~/.android/debug.keystore` 不进仓库），所以这一版只适合装机自测，覆盖不了别人机器上正式签名的那一份。
-- 版本号三件现在对齐在 `CACHE weather-studio-v3` / `versionCode 3` / `versionName 1.1`（`package.json` 也是 1.1）；tag 只有公开线那一笔 `v1.0`，本线还没打过。
+- 只出 debug 签名包（`~/.android/debug.keystore` 不进仓库），这一版的定位是自用与侧载。
+- 版本号三件对齐在 `CACHE weather-studio-v3` / `versionCode 3` / `versionName 1.1`（`package.json` 也是 1.1），公开线的 tag 是 `v1.1`。`CACHE` 号是从 v1 重开的新数段，与早年 v1xx 那一段不连续，别拿它当版本号比大小。
 
 上面只是最常被问到的几条。每条限制的实测数字与被推翻过的版本记在改它的那笔提交信息里，文档不另抄一份 —— 同一件事维护在两处迟早会漂。
 
