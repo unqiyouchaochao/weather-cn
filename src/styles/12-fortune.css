@@ -1,0 +1,67 @@
+/* 生辰锁定：按住两秒、进度条走完才解锁，提前松手就回零。
+ * touch-action:none 是必须的 —— 不然手机上「按住」会被判成滚动手势，pointerdown 直接取消。 */
+.fz-lock, .fz-hold { position: relative; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+.fz-lock {
+  width: 100%; margin-top: 6px; padding: 9px 12px; border-radius: 10px; text-align: center;
+  border: 1px dashed var(--line); background: var(--field-bg); color: var(--ink);
+  font-size: 12px; cursor: pointer;
+}
+.fz-lock-fill { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--tint); }
+.fz-lock.holding .fz-lock-fill, .fz-hold.holding .fz-lock-fill { width: 100%; transition: width 2s linear; }
+.fz-lock-text, .fz-hold > span:last-child { position: relative; }
+.fz-form.locked { opacity: .55; }
+.fz-form.locked input, .fz-form.locked select { pointer-events: none; }
+.fz-card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 14px 16px;
+  margin: 14px 0;
+}
+.fz-card:empty { display: none; }
+.fz-card h3 { margin: 0 0 10px; font-size: 16px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.fz-meta { font-size: 12px; font-weight: 400; color: var(--muted); }
+.fz-glyph { font-size: 19px; color: var(--accent); }
+
+/* 四柱竖排：干在上、支在下，与传统排盘表一致 */
+.fz-pillars { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.fz-pill { border: 1px solid var(--line); border-radius: 12px; padding: 8px 2px; text-align: center; background: var(--field-bg); }
+.fz-pill.me { border-color: var(--accent); background: var(--tint); }
+.fz-pill.dim { opacity: .58; }
+.p-l { display: block; font-size: 12px; color: var(--muted); }
+.p-gz { display: block; font-size: 21px; font-weight: 600; line-height: 1.3; }
+.p-e { display: block; font-size: 11px; color: var(--muted); }
+
+/* 五行占比：底色固定是文化约定（木青火赤…），不随主题换肤，故这里刻意不取 --brand */
+.fz-wx { display: flex; gap: 6px; margin: 12px 0 2px; }
+.wx { flex: 1; position: relative; height: 26px; border-radius: 8px; background: var(--tint-2); overflow: hidden; }
+.wx i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--c); opacity: .32; }
+.wx em { position: relative; font-style: normal; font-size: 12px; line-height: 26px; text-align: center; display: block; color: var(--ink); }
+.fz-rel { font-size: 13px; margin: 10px 0 0; }
+.fz-score { display: flex; align-items: center; gap: 9px; margin-top: 12px; }
+.fz-score b { font-size: 15px; color: var(--accent); }
+.fz-stars { letter-spacing: 1px; font-size: 14px; color: var(--sun); }
+.fz-stars i { font-style: normal; opacity: .22; }
+.fz-aspects { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 4px; color: var(--muted); }
+.fz-luck { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 10px; color: var(--muted); }
+.fz-luck b { color: var(--ink); font-weight: 600; }
+.fz-yi { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; margin-top: 8px; }
+.tag { font-style: normal; margin-right: 6px; border-radius: 6px; padding: 1px 6px; font-size: 12px; }
+.tag.ok { background: var(--ok-bg); color: var(--ok-ink); border: 1px solid var(--ok-line); }
+.tag.err { background: var(--err-bg); color: var(--err-ink); border: 1px solid var(--err-line); }
+.fz-tip { font-size: 13px; color: var(--pop); margin: 8px 0 0; }
+.fz-empty { color: var(--muted); font-size: 13px; margin: 0; }
+.fz-disc { font-size: 11px; color: var(--muted); line-height: 1.75; margin: 16px 0 0; }
+/* code 片段自己铺 --code-bg，字色不能跟着外层走 --muted：那一档在浅色主题下只有 3.58~4.47，
+ * 不达 AA（10 套主题的配对由 tests/app.checks.mjs 逐套量）。换成 --ink 一处修完全部主题。 */
+.fz-disc code, .fz-hl code { background: var(--code-bg); color: var(--ink); border-radius: 4px; padding: 0 4px; }
+/* 今日黄历卡：日柱那一个字是主角，其余按行铺开；值日badge 靠右，吉凶用 ok/err 同色系 */
+.hl-gz { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; font-size: 13px; color: var(--muted); }
+.hl-gz b { font-size: 24px; color: var(--ink); letter-spacing: 1px; }
+.hl-dao { margin-left: auto; font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--tint); color: var(--ink); }
+.hl-dao.ok { background: var(--ok-bg); color: var(--ok-ink); }
+.hl-dao.err { background: var(--err-bg); color: var(--err-ink); }
+.hl-note { font-size: 13px; margin: 10px 0 0; }
+.hl-foot { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+

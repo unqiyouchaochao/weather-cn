@@ -1,0 +1,18 @@
+{
+  "appId": "com.weatherstudio.app",
+  "appName": "天气助手",
+  "webDir": "weather-app",
+  "android": {
+    "allowMixedContent": false
+  },
+  "server": {
+    "androidScheme": "https"
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 700,
+      "backgroundColor": "#eef3f8",
+      "showSpinner": false
+    }
+  }
+}

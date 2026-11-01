@@ -1,0 +1,56 @@
+# 依赖与构建产物（全部可再生，不进版本库）
+node_modules/
+
+# Capacitor 生成的 web 资源副本与安卓构建状态
+# （android/.gitignore 已覆盖 build/ 与 .gradle/，这里补根视角）
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/capacitor-cordova-android-plugins/
+android/local.properties
+
+# 下载的东西，不是源码
+downloads/
+
+# 2026-09-18 的单文件架构快照，留着当考古，不参与版本管理
+_旧快照-2026-09-18/
+
+# 临时验证产物（日志里那条「smoke*.js / *.log 及时清理」约定的兜底）
+*.log
+smoke*.js
+*.tmp
+# 验收/调试脚本跑起来时自建的临时目录（如 .tmp-dv/），用完即删，
+# 但存在的那段时间会被 `git add .` 扫到，所以按名字模式挡掉
+.tmp-*/
+
+# 抓下来的省界 GeoJSON 等外部数据缓存，tools/*.py 会自己重建
+tools/datav_cache/
+
+# Qoder 会话自身产物（credits 报告等），不属于工程
+.qoder-credits/
+
+# 出图工具的产物（tools/shot-themes.mjs 一条命令就能重跑，不进版本库）
+tests/shots/
+
+# 个人版素材（洛天依角色图、版权受限资源）—— 绝不进公开仓库
+private/
+# 个人版构建时临时放进 web 根的主题包（build-personal.mjs 拷入，构建后自动删除）
+weather-app/seed-plugins/
+# 旧的个人版注入物（2026-10-10 起改用主题插件包，不再注 CSS/图片；留着规则以防回退时漏掉）
+src/styles/21-tianyi-character.css
+weather-app/img/
+# 2026-10-06/07 天依还是内置主题时的草稿（预览页 / 试色 CSS / 沙箱核对脚本）。
+# 里面没有角色图，但整套设计是个人版的，别让它跟着 `git add .` 混进公开仓库。
+theme-tianyi/
+# 打包与素材根判据本身也不进公开仓库：它们读素材根、把角色图 base64 进包，属于「另一套规矩」那一边。
+# 开源侧只需要知道 .themepkg.json 这个格式与导入通道（README 里写了）。
+# 个人版 APK 那条构建线 2026-10-13 退役；插件工具由本机插件线维护。
+tools/gen-theme-pkg.mjs
+tools/theme-root.mjs
+
+# 构建工具链（JDK / Android SDK），只在本机使用，绝不进版本库
+.toolchain/
+
+# 公开线（oss-public 分支）的 git worktree 落点：那是一份完整的工程副本，
+# 不挡掉的话一次 `git add .` 就把整个第二份工作树吞进仓库。
+.worktrees/

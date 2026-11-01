@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/AppTheme">
+
+        <activity
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|locale|smallestScreenSize|screenLayout|uiMode|navigation"
+            android:name=".MainActivity"
+            android:label="@string/title_activity_main"
+            android:theme="@style/AppTheme.NoActionBarLaunch"
+            android:launchMode="singleTask"
+            android:exported="true">
+
+            <!-- 桌面入口刻意**不**挂在这里，改挂到下面四个 activity-alias 上：换图标就是
+                 「启用其中一个、禁用其余」，MainActivity 本身永远不关（它是四个入口共同的目标）。
+                 要是把这条留着，启用任一 alias 就会同时出现两个图标。 -->
+
+        </activity>
+
+        <!-- 桌面图标预设。Android 的图标是编译期资源，运行时只能在这几套里换，
+             不能拿用户相册里随便一张当图标（那是 launcher 才有的能力）。
+             四个里必须恰好有一个 enabled —— 全关掉应用就从桌面上消失了，所以 AppIconPlugin
+             在动手前先「启用目标、再关掉其余」，并在每次 getIcon() 时自愈（见那个类）。 -->
+        <activity-alias
+            android:name=".IconDefault"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="true"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconSun"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@mipmap/ic_alt_sun"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconNight"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@mipmap/ic_alt_night"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+        <activity-alias
+            android:name=".IconBloom"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:enabled="false"
+            android:icon="@mipmap/ic_alt_bloom"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths"></meta-data>
+        </provider>
+
+        <!-- 划掉后台后继续每小时更新通知栏、每 10 分钟查一次预警。
+             targetSdk 35 起前台服务必须声明类型，否则 startForeground 直接抛异常。
+             类型是 specialUse 而不是 dataSync：官方《Android 15 行为变更》写明 targetSdk 35 起
+             dataSync 类型在前台服务上只有「24 小时内累计 6 小时」的额度，超了系统给 onTimeout()，
+             不 stop 就抛 ForegroundServiceDidNotStopInTimeException 把进程干掉（Android 14 无此上限）。
+             红米 crash 缓冲里正躺着两条这种主线程 FATAL：09-25 00:34:44、09-25 14:27:17。
+             这条通知本身是常驻的，不是一次性取数，用 dataSync 报的是「取完就停」，超时被强杀才是应然 —— 换个诚实的类型。
+             specialUse 没有时限，代价是它要求在这里附一句用途说明（下面那个 property），
+             上架 Google Play 时还要在商店问卷里单独申报。 -->
+        <service
+            android:name=".WeatherKeepAliveService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="常驻一条天气通知（每小时按用户给的配方刷新一次正文、每 10 分钟查一次气象预警），通知是用户自己在应用设置里打开的，关掉即停服务" />
+        </service>
+        <receiver
+            android:name=".WeatherTickReceiver"
+            android:exported="false" />
+        <!-- 上滑清理 = 对本包 force-stop，会连带取消所有待触发闹钟；没有这个入口就没人把下一拍排回来。
+             开机 / 每次解锁 / 覆盖安装后各补一次，详见 WeatherRestartReceiver 的注释。 -->
+        <receiver
+            android:name=".WeatherRestartReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.USER_PRESENT" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+    <!-- Permissions -->
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- @capacitor/geolocation 的库清单里不声明权限，必须由应用自己加，否则 getCurrentPosition 直接失败。
+         只申请前台粗略+精确定位；不加 ACCESS_BACKGROUND_LOCATION（商店审核会专门盯）。 -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- 通知栏常驻天气（Android 13 起要运行时授权，见 WeatherNotifyPlugin） -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 后台存活：前台服务 + 它的类型权限（Android 14 起两者都要，缺类型权限会 SecurityException）。
+         类型权限跟着清单里那个 specialUse 走 —— 换成 dataSync 时要把这条一起换掉。 -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- 开机后把闹钟链接回来（见 WeatherRestartReceiver）。USER_PRESENT / MY_PACKAGE_REPLACED 不要权限。 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+</manifest>

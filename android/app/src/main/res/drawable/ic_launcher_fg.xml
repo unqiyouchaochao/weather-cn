@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 默认图标的前景层：日头 + 云，与 weather-app/icon.svg、js/lib/appicon.js 里那份预览同一套图形。
+     画在 108×108 上，全部收在中央 66dp 安全区内（圆形/方形桌面蒙版会裁掉外圈）。
+     64 视口的原图按 66/64 缩放、居中，故 group 用 scale 1.03125 + translate 21。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="1.03125"
+        android:scaleY="1.03125"
+        android:translateX="21"
+        android:translateY="21">
+        <path
+            android:fillColor="#FFD54A"
+            android:pathData="M15,24 a9,9 0 1,1 18,0 a9,9 0 1,1 -18,0" />
+        <path
+            android:strokeColor="#FFD54A"
+            android:strokeWidth="2.4"
+            android:strokeLineCap="round"
+            android:pathData="M24,8 L24,12 M24,36 L24,40 M8,24 L12,24 M36,24 L40,24 M12,12 L15,15 M33,33 L36,36" />
+        <!-- 云的四段合在一条 path 里：nonZero 填充下**绕向必须一致**（全 sweep=1）。
+             圆的弧标志若写成 1,0 就和胶囊底反向，重叠处互相挖空 —— 云底静默长出两个缺口。
+             同一份 pathData 还在 res/mipmap/ic_launcher.xml 与 ic_launcher_round.xml 里。 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M27,40 a11,11 0 1,1 22,0 a11,11 0 1,1 -22,0 M19,44 a9,9 0 1,1 18,0 a9,9 0 1,1 -18,0 M38,44 a8,8 0 1,1 16,0 a8,8 0 1,1 -16,0 M26.5,46 h21 a4.5,4.5 0 0 1 0,9 h-21 a4.5,4.5 0 0 1 0,-9 z" />
+    </group>
+</vector>

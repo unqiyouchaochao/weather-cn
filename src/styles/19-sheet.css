@@ -1,0 +1,64 @@
+/* ---------- 全屏子视图（`.sheet`，现在只有空气排名一个） ----------
+ * 盖过底部菜单，自己带返回；锁背景滚动靠 body[data-sheet]（不是 class，见 lib/sheet.js 的说明） */
+.sheet {
+  position: fixed; inset: 0; z-index: 60;
+  background: var(--bg);
+  /* 浮层自己铺了一层不透明的 --bg，底下的背景图透不过来，所以这一片必须整块退出玻璃：
+   * 排名一开是 360 行 .rank-row，各算一层 backdrop-filter 就是 362 层糊在一层实色上 ——
+   * 视觉收益为零，而手机 1440x3200 上每帧要多糊约 38 倍视口的高斯像素，合成器直接拖死
+   * （2026-09-23 应用卡死的根因，实测数字见 .issues/2026-09-23-app-freeze/issue.md）。
+   * 顺带把卡面与次要文字退回主题原本量过 AA 的那对实底配色：半透在 --bg 上是另一对没量过的组合。 */
+  --glass-fx: none;
+  --surface: var(--card);
+  --muted: var(--muted-base);
+  display: flex; flex-direction: column;
+  /* 整块自己不滚：滚动只许发生在 .sheet-body 那一层（与 .modal-card 同一套三段式）。
+     少了这一条，标题/返回/排序会跟着 360 行一起滚走，滚到深处屏上就没有出口了。 */
+  overflow: hidden;
+  /* 进出场不在这里：那一段与板块切换共用（进场见 13-transition.css 的 overlay-in，退场见 js/lib/sheet.js）。
+     退场必须等动画跑完才能 hidden，这件事只有 JS 知道，写在 CSS 里会两头对不上。 */
+}
+/* 用 data-sheet 属性而不是 body 类：body 的类名这一层以前被 ui.applyBg() 每次刷新整体重写，
+   挂在类上的东西会被它抹掉。（2026-10-04 起 applyBg 改写 data-weather，类名已经腾出来了，
+   但这条不改：属性选择器与主题的 data-theme 同一风格，也没必要为一件没坏事的东西再动一次。） */
+body[data-sheet] { overflow: hidden; }
+/* 只有这一条是真把页面钉住的：根元素的 overflow 会传播给视口。
+   body 那条单独用不成立 —— body 没有固定高度，盒子跟内容一样高，裁它等于没裁
+   （2026-10-01 回归里真去推 scrollTop 才暴露：属性挂着、overflow=hidden、页面照样滚）。 */
+html[data-sheet] { overflow: hidden; }
+.sheet-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 14px 10px;
+  background: var(--card); border-bottom: 1px solid var(--line);
+  flex: 0 0 auto;
+}
+.sheet-head h2 { margin: 0; font-size: 17px; flex: 1; min-width: 0; color: var(--ink); }
+.sheet-back { border: none; background: none; color: var(--ink); font-size: 30px; line-height: 1; cursor: pointer; padding: 0 6px; min-width: 44px; min-height: 44px; border-radius: 12px; transition: .12s; }
+/* 立刻给一点按压反馈：返回这件事的「跟手」一半来自这里，另一半是上面那两段进出场动画 */
+.sheet-back:active { background: var(--tint); transform: scale(.92); }
+.sheet-act { border: 1px solid var(--line); background: var(--field-bg); color: var(--ink); font-size: 12px; border-radius: 999px; padding: 6px 12px; cursor: pointer; white-space: nowrap; }
+/* .sheet 的底是 --bg（页面底），不是卡片。--muted 只对着 --card 量过（4.53~6.74），
+   压在 --bg 上是一对没量过的组合，所以这类说明文字一律自己铺一层 --card 实底。 */
+.sheet-note { flex: 0 0 auto; margin: 10px 14px 4px; font-size: 12px; color: var(--muted); background: var(--surface); border-radius: 8px; padding: 6px 9px; }
+
+.rank-list { list-style: none; margin: 0; padding: 0 14px; }
+ol.rank-list { counter-reset: none; }
+#rankMine { padding-bottom: 2px; }
+#rankMine:empty { display: none; }
+#rankMine .rank-row { border-top: none; margin-bottom: 6px; box-shadow: var(--shadow); }
+.rank-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 12px; background: var(--surface);
+  border-top: 1px solid var(--line);
+}
+.rank-row:first-child { border-top: none; }
+.rank-row.mine { border: 1px solid var(--accent); border-radius: 12px; }
+.rank-row.empty { color: var(--muted); font-size: 13px; border: 1px dashed var(--line); border-radius: 12px; }
+.rank-no { flex: 0 0 42px; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rank-city { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.rank-city b { font-size: 15px; font-weight: 600; color: var(--ink); }
+.rank-city i { font-size: 11px; font-style: normal; color: var(--muted); }
+.rank-aqi { flex: 0 0 46px; text-align: right; font-size: 17px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.rank-loading { padding: 14px; font-size: 13px; color: var(--muted); background: var(--surface); border-radius: 10px; margin: 0 0 8px; }
+.sheet .rank-list:last-child { padding-bottom: calc(20px + env(safe-area-inset-bottom, 0px)); }
+

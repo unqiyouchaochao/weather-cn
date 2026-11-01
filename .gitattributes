@@ -1,0 +1,7 @@
+# 本机 core.autocrlf=true，所以 git 会把 LF 文件在检出时换成 CRLF —— 一次普通的
+# `git checkout -- <文件>` 就能让 `weather-app/styles.css` 从 73415 字节变成 74941 字节
+# （每行多一个 CR），而 `git status` 照旧说干净、只在下回碰它时 warn 一句。
+# 样式产物与它的 21 片源都由工具按 LF 读写（tools/gen-styles.mjs 比的是内容、写的一定是 LF），
+# 所以这里只把 css 钉死成 LF，消掉那声噪声；其余（html/java/xml/gradle…）不动，
+# 免得替另一条正在改 js 的会话改行尾预期。
+*.css text eol=lf

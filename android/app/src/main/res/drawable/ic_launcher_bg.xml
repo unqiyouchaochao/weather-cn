@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 默认图标的背景层：从 weather-app/icon.svg 那天空渐变搬过来。
+     只有 mipmap-anydpi-v26 会引它（API 26+），所以这里可以放心用矢量渐变；
+     API 23–25 走 res/mipmap/ic_launcher.xml 那份实底版。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:pathData="M0,0 h108 v108 h-108 z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:startX="54" android:startY="0"
+                android:endX="54" android:endY="108"
+                android:type="linear">
+                <item android:offset="0" android:color="#FF2B7FFF" />
+                <item android:offset="1" android:color="#FF4F9BFF" />
+            </gradient>
+        </aapt:attr>
+    </path>
+</vector>

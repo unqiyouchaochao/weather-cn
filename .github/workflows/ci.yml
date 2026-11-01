@@ -1,0 +1,43 @@
+name: 闸门
+
+# 哪些闸门在 CI 上、哪些不在，是有意选的：
+#   在：五条纯 Node、秒级、不读 node_modules、不需要浏览器与手机 —— 每次 push 都跑得起。
+#   不在：`tools/run-checks.mjs` 那 127 条浏览器断言（要本机 Edge + CDP，且一次约 58 秒，
+#         为它在 runner 上养一个桌面浏览器环境不值，先留本机）；`tests/device-check.mjs`
+#         等真机脚本（要 adb）；`tools/falsify.mjs`（一整趟约两小时，绝不能挂在 CI 上）。
+#   暂不在：APK 构建（要下 JDK + Android SDK，且签名策略还没定）。
+# 下面这些命令刻意写成 `node …` 而不是 `npm run …`，也**不跑 `npm ci`**：
+# 2026-10-12 在一个没有 node_modules 的 worktree 里逐条实测过，退出码全 0 ——
+# 这样 CI 不依赖任何 registry，装依赖的时间与失败面都省掉。
+
+on:
+  push:
+    branches: [main, oss-public]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  gates:
+    name: 秒级闸（分区 · 漂移 · 锚点 · 纯 Node 测试）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 开源分区闸 —— 个人版素材、本机绝对路径、写死的密钥不许进仓库
+        run: node tools/oss-guard.mjs
+
+      - name: SHELL 预缓存清单与磁盘一致、样式产物没漂、脚本自身编得过
+        run: node tools/shell-check.mjs
+
+      - name: 变异表每一处锚点还锚不锚得住（失锚 = 那条断言从没被逼红过）
+        run: node tools/anchor-audit.mjs
+
+      - name: 玻璃材质数学
+        run: node tests/glass.test.mjs
+
+      - name: 主题插件包的六道离线闸
+        run: node tests/theme-pkg.test.mjs

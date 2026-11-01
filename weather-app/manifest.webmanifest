@@ -1,0 +1,14 @@
+{
+  "name": "天气助手 Weather Studio",
+  "short_name": "天气助手",
+  "description": "可接入任意天气预报 API 的天气应用，支持多城市对比、定位与离线使用。",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#eef3f8",
+  "theme_color": "#2b7fff",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

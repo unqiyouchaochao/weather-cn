@@ -1,0 +1,32 @@
+/* ---------- 新闻板块 ----------
+ * 列表放在 --card 上而不是页面渐变上：标题/时间用的 --ink / --muted 是照卡片量过对比度的，
+ * 直接铺在 --w-* 渐变上等于换了一个没量过的底色。
+ * 进场的淡入不写在这里：三个板块共用容器那一条（见 13-transition.css）。 */
+.news-head { display: flex; align-items: center; gap: 10px; margin: 2px 0 10px; }
+.news-chips { display: flex; gap: 8px; flex: 1; flex-wrap: wrap; }
+.chip-btn {
+  padding: 7px 15px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--field-bg);
+  color: var(--ink);
+  font-size: 13px;
+  cursor: pointer;
+  transition: .15s;
+}
+.chip-btn.on { background: var(--brand); border-color: var(--brand-2); color: var(--hero-ink); font-weight: 600; }
+.news-note { font-size: 13px; color: var(--ink); margin: 0 0 10px; }
+.news-note.warn { background: var(--hint-bg); border: 1px solid var(--hint-line); padding: 10px 12px; border-radius: 10px; }
+.news-note.err { background: var(--err-bg); border: 1px solid var(--err-line); color: var(--err-ink); padding: 10px 12px; border-radius: 10px; }
+.news-list {
+  list-style: none; margin: 0; padding: 0 14px;
+  background: var(--surface); border-radius: var(--radius); box-shadow: var(--shadow);
+}
+.news-item + .news-item { border-top: 1px solid var(--line); }
+.news-item a { display: block; padding: 12px 2px; text-decoration: none; color: var(--ink); border-radius: 8px; }
+.news-item a:active { background: var(--tint-2); }
+.news-title { font-size: 15px; line-height: 1.5; }
+.news-meta { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+.news-src { font-size: 12px; color: var(--muted); margin: 10px 0 0; }
+.news-disc { font-size: 12px; color: var(--muted); margin: 14px 0 0; line-height: 1.7; }
+

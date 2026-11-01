@@ -1,0 +1,25 @@
+/* 空气质量 */
+.air-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  box-shadow: var(--shadow);
+}
+/* 字色不写在这里：底色是 AQI 等级色（JS 按数据塞的 inline style，与主题无关），
+ * 配固定白字压在中度污染那一档只剩 4.18、「良」那一档只剩 2.25。改由 glass.inkFor 按底色挑黑/白，
+ * 两处渲染点（ui.js 的空气卡、rank.js 的榜行）一起下发 —— 所以这里不留 color，免得两份真值。 */
+.air-badge { font-size: 12px; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.air-num { font-size: 26px; font-weight: 600; line-height: 1; }
+.air-num i { font-size: 12px; font-style: normal; color: var(--muted); margin-left: 4px; }
+.air-sub { font-size: 12px; color: var(--muted); margin-left: auto; }
+/* 全国排名只有走华为城市榜那一級才有；那一源不给分项浓度，所以与 .air-sub 实际不会同屏 */
+.air-rank { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+/* .cur-src 本来是给 hero 的渐变底用的（白字 + 半透明白描边）。搬到 var(--card) 上之后，
+ * 浅色主题里底和描边会同时"消失"（白压白），出处看着像漏排的小字，所以这里换成随主题的底。 */
+.air-card .cur-src { background: var(--field-bg); border-color: var(--line); }
+

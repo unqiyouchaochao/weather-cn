@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 「晴日」前景：实心日 + 八道光芒。画在 108×108 上，全部收在中央 66dp 安全区里
+     （圆形/方形的桌面蒙版会裁掉外圈，出界就被啃掉一块）。 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#F5C542"
+        android:pathData="M40,54 a14,14 0 1,0 28,0 a14,14 0 1,0 -28,0" />
+    <path
+        android:strokeColor="#F5C542"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M54,25 L54,32 M54,76 L54,83 M25,54 L32,54 M76,54 L83,54 M38.4,38.4 L33.5,33.5 M69.6,38.4 L74.5,33.5 M38.4,69.6 L33.5,74.5 M69.6,69.6 L74.5,74.5" />
+</vector>

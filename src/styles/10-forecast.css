@@ -1,0 +1,32 @@
+/* 预报卡降水概率 */
+.day .d-pop { font-size: 11px; color: var(--pop); margin-top: 4px; }
+
+/* 新增区块骨架 */
+.hourly .sk-hr { flex: 0 0 auto; width: 58px; height: 112px; border-radius: 12px; }
+.details .sk-dt { height: 44px; border-radius: 12px; }
+
+/* 区块标题行（范围标签 + 返回按钮） */
+.sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.scope { font-size: 13px; font-weight: 400; color: var(--accent); margin-left: 6px; }
+.tool-btn {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 9px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .15s;
+  white-space: nowrap;
+}
+.tool-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+/* 可下钻的预报卡 */
+.day.act { cursor: pointer; transition: .15s; }
+.day.act:hover { border-color: var(--accent); transform: translateY(-2px); }
+.day.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--ring), var(--shadow); }
+.day .d-mm { font-size: 11px; color: var(--pop); }
+/* 「真没下」这一行不许借 --pop（那是「有雨」的颜色）。借用同一张卡上 .d-name/.d-lo 已经在用的
+ * --muted，不新增配色配对，AA 那条扫描本来就量过这一对。 */
+.day .d-mm.none { color: var(--muted); }
+
