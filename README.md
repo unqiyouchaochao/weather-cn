@@ -25,7 +25,7 @@ npm ci
 npm run serve            # http://127.0.0.1:8150/  只绑回环
 ```
 
-跑回归（110 条断言，注入到同源 iframe 里量真 DOM / 真 computed style / 真模块）：
+跑回归（113 条断言，注入到同源 iframe 里量真 DOM / 真 computed style / 真模块）：
 
 ```bash
 npm run serve:checks     # 以仓库根为根起服务，:8169
@@ -100,7 +100,7 @@ npm run apk      # gen-styles → gen-shell → cap sync → gradlew assembleDeb
   华为实测要十几二十秒。
 - 降水量、风力等字段源没给就整行不画，也不会用别的字段估算 —— 宁缺勿错是这仓库的默认取向。
 - 只出 debug 签名包（`~/.android/debug.keystore` 不进仓库），这一版的定位是自用与侧载。
-- 版本号三件对齐在 `CACHE weather-studio-v3` / `versionCode 3` / `versionName 1.1`（`package.json` 也是 1.1），公开线的 tag 是 `v1.1`。`CACHE` 号是从 v1 重开的新数段，与早年 v1xx 那一段不连续，别拿它当版本号比大小。
+- `CACHE weather-studio-v4` 比装在机器上的那颗新：仓库里的应用字节是第四版（2026-11-05 把检索失败改成按源点名），而真机与 Release 上那颗仍是 `versionCode 3` / `versionName 1.1`（公开线 tag `v1.1`，`package.json` 也是 1.1）。这一改要落到手机上就得升 `versionCode 4` / `versionName 1.2`、重打包装机并发新版 —— 那是发版动作，说一句才做。`CACHE` 号是从 v1 重开的新数段，与早年 v1xx 那一段不连续，别拿它当版本号比大小。
 
 上面只是最常被问到的几条。每条限制的实测数字与被推翻过的版本记在改它的那笔提交信息里，文档不另抄一份 —— 同一件事维护在两处迟早会漂。
 
@@ -112,7 +112,7 @@ weather-app/     应用本体（纯静态，webDir；cap sync 整目录拷进 Ap
 src/styles/      给人改的样式分片（NN-*.css，一片一个板块），产物由 gen-styles 拼
 android/         Capacitor 壳 + 四个自写插件（图标切换 / 原生定位 / 常驻通知 / 后台保活）
 tools/           生成器与闸门（样式、SHELL 清单、变异表、主题包验收、出图、真机通道）
-tests/           110 条浏览器断言 + 纯 Node 测试 + 真机脚本 + 合成夹具
+tests/           113 条浏览器断言 + 纯 Node 测试 + 真机脚本 + 合成夹具
 主题插件开发范式.md   写主题包之前读这一份
 ```
 
