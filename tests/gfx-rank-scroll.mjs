@@ -6,10 +6,17 @@
  *    于是 jank 0%、GPU 直方图全 0，看着像「修好了」，其实什么都没测（2026-09-24 就中招了）。
  * 2) 测量前后各查一次排名浮层真的开着、且 scrollTop 动了，否则这份数不是「滚动排名」的数。 */
 const { ADB: A } = await import('./adb-path.mjs');   // adb 从环境变量找（写死本机路径换机就静默哑掉）
-const SER = process.argv[3] || '<红米 serial>';
 const PKG = 'com.weatherstudio.app', N = 24;
 const { execFileSync } = await import('node:child_process');
 const { writeFileSync, mkdirSync } = await import('node:fs');
+/* serial 也不写死：这一条量的是「同一台、同一串手势」的 A/B，写死成某一台既会在换机后静默量到别人身上，
+   也把一台具体设备的编号留在了仓库里。给参数就用参数，不给就要求恰好只连着一台。 */
+const SER = process.argv[3] || (() => {
+  const 台 = execFileSync(A, ['devices'], { encoding: 'utf8' }).split(/\r?\n/)
+    .filter(l => /\tdevice$/.test(l)).map(l => l.split('\t')[0]);
+  if (台.length !== 1) throw new Error('adb devices 里有 ' + 台.length + ' 台：把 serial 作第二个参数给我（同一台才可比）');
+  return 台[0];
+})();
 const LABEL = process.argv[2] || 'run';
 const sh = (...args) => execFileSync(A, ['-s', SER, ...args], { encoding: 'utf8' });
 

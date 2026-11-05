@@ -14,7 +14,13 @@
  */
 import { execSync } from 'node:child_process';
 
-const SERIAL = process.env.ANDROID_SERIAL || '<华为机 serial>';
+/* 盯的是具体那一台，所以 serial 要么写进环境变量，要么现场只连着一台 —— 不写死任何一台的编号。 */
+const SERIAL = process.env.ANDROID_SERIAL || (() => {
+  const 台 = execSync('adb devices', { encoding: 'utf8' }).split(/\r?\n/)
+    .filter(l => /\tdevice$/.test(l)).map(l => l.split('\t')[0]);
+  if (台.length !== 1) { console.error('ANDROID_SERIAL 没给，而 adb devices 里有 ' + 台.length + ' 台：这一轮要盯着一台跑满一小时，不许临场换机'); process.exit(3); }
+  return 台[0];
+})();
 const PKG = 'com.weatherstudio.app';
 const GATE_MS = 60 * 60 * 1000;
 const sh = c => {
