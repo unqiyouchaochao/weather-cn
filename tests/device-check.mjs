@@ -23,7 +23,7 @@ const { execFileSync } = await import('node:child_process');
 let SER = process.argv[2];
 const sh = (...args) => execFileSync(A, args[0] === '-s' ? args : ['-s', SER, ...args], { encoding: 'utf8' });
 if (!SER) {
-  const 台 = sh('devices').split('\n').filter(l => /\tdevice$/.test(l)).map(l => l.split('\t')[0]);
+  const 台 = sh('devices').split(/\r?\n/).filter(l => /\tdevice$/.test(l)).map(l => l.split('\t')[0]);
   if (台.length !== 1) throw new Error('给我 serial：' + 台.join(', '));
   SER = 台[0];
 }
@@ -39,7 +39,7 @@ if (/mIsShowing=true/.test(窗口)) {
 const 锁 = (/deviceLocked=(\d)/.exec(sh('shell', 'dumpsys', 'trust')) || [])[1];
 if (锁 === '1') throw new Error('dumpsys trust 说 deviceLocked=1：还是锁着的');
 if (!new RegExp(PKG).test(窗口 + sh('shell', 'dumpsys', 'activity', 'activities'))) {
-  throw new Error('应用不在前台：mCurrentFocus=' + (/mCurrentFocus ([^\r\n]+)/.exec(窗口) || ['?', '读不到'])[1]);
+  throw new Error('应用不在前台：mCurrentFocus=' + (/mCurrentFocus[= ]+([^\r\n]+)/.exec(窗口) || ['?', '读不到'])[1]);
 }
 const 找pid = () => { const m = /webview_devtools_remote_(\d+)/.exec(sh('shell', 'cat', '/proc/net/unix')); return m && m[1]; };
 const pid = 找pid();
