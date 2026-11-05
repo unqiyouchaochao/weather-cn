@@ -46,7 +46,7 @@ Service Worker 是 cache-first。验证改动时换一个新端口（换 origin 
 | 命令 | 查什么 | 备注 |
 |---|---|---|
 | `node tools/shell-check.mjs` | `sw.js` 的 SHELL 清单与磁盘是否一致、`styles.css` 有没有漂移、`sw.js` 编不编得过 | 纯 Node；当前基线是 SHELL 70/70、styles 20 片 |
-| `node tools/anchor-audit.mjs` | 变异表里每一处锚点还锚不锚得住 | 纯 Node；当前基线 96 个锚点 / 失锚 0 |
+| `node tools/anchor-audit.mjs` | 变异表里每一处锚点还锚不锚得住 | 纯 Node；当前基线 100 个锚点 / 失锚 0 |
 | `node tests/glass.test.mjs` | 玻璃材质数学（WCAG 比值、合成、反解） | 纯 Node |
 | `node tests/theme-pkg.test.mjs` | 主题插件包的六道离线闸 | 纯 Node |
 | `node tools/theme-make.mjs init <id> [显示名]` / `… build <id>` | 起一套主题工作目录（底从范式 §0 刮，不留第二份）、打包并立刻过闸 | 纯 Node；工作目录默认落在**仓库外**，往仓内写要显式 `--allow-in-repo` |
@@ -54,6 +54,7 @@ Service Worker 是 cache-first。验证改动时换一个新端口（换 origin 
 | `node tools/run-checks.mjs` | 浏览器回归：注入同源 iframe 量真 DOM / 真 computed style / 真模块 | 需要先起 `npm run serve:checks`，并本机有 Edge/Chrome；当前基线 113 条，约 60~70 秒 |
 | `node tools/falsify.mjs` | 逐条把实现改坏，确认对应断言会红，再还原 | **很慢**（一处 = 一整趟回归 60~75 秒；96 处实测单路约 100 分钟、两棵 worktree 分片并行 55 分钟；现在表里 99 处，全量按这比例推），独占**它所在那一棵树**，见下 |
 | `node tests/device-check.mjs [serial]` | 装机后的真机五件验收 | 需要 adb；锁屏/通知栏遮挡时会拒绝出数 |
+| `node tools/push-guard.mjs [<rev-list 范围>]` | 推之前扫「这次会让远端第一次见到的那些提交」 | 纯 Node。不带参数就扫本地每个 `refs/heads` 相对远端缺的那一段；`--install` 装成 `pre-push` 钩子（每个克隆各装一次，`.git/hooks` 不入库）；旧线的归档放在 `refs/legacy/` 下，那个命名空间不会被 `--all` 带走 |
 | `node tests/icon-switch.mjs [serial]` | 桌面图标四套预设逐个切，并问系统实际生效的是哪个入口 | 真机，可选 |
 | `node tests/gfx-rank-scroll.mjs` | 排名浮层的滚动 GPU 代价 | 真机，可选 |
 | `node tests/notify-dedup.mjs` | 常驻通知「正文没变就不重发」 | 真机，且要等自然到的那一拍 |
