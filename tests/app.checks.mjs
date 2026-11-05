@@ -1341,6 +1341,76 @@ push('回车搜索完成后，候选列表不被在途的联想重新弹出',
   localStorage.removeItem(旧键);
 }
 
+/* 2026-11-05 红米 K60：这台所在网络把 photon.komoot.io 挡在 **TCP 443**（机器里 `toybox nc` 建不上、
+ * 系统 curl 报 Couldn't connect，而 ICMP ping 通、同一发 Open-Meteo 是 200）。那一轮 `silent` 是 false ——
+ * 主源答了，只是它库里没有这个词 —— 屏上仍是那句「可试试加上市/县后缀」，把上游没连上归给了用户的用词。
+ * silent 只管两源全哑，这另一半得单独钉。桩的形状照真机：Photon 是 reject（TypeError: Failed to fetch），
+ * 不是「200 但空」—— 那是两种不同的事实，混着桩就量不出归因。 */
+{
+  const 词 = '甲巴未查镇';                      // 两家库里都没有，且不会撞上按名缓存里已有的键
+  const realFetch = window.fetch;
+  const 发 = { ph: 0, om: 0 };
+  window.fetch = function (url) {
+    const u = String(url);
+    if (u.indexOf('photon.') >= 0) { 发.ph++; return Promise.reject(new TypeError('Failed to fetch')); }
+    if (u.indexOf('geocoding-api') >= 0) { 发.om++; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) }); }
+    return realFetch.apply(window, arguments);
+  };
+  const geoFresh = await import('/weather-app/js/lib/geo.js?part=' + Date.now());
+  let 案 = '(没抛错)', 抛了 = false;
+  try { await geoFresh.bestCity(词); }
+  catch (e) { 案 = String((e && e.message) || e); 抛了 = true; }
+  finally { window.fetch = realFetch; }
+  push('只有一家整轮没连上时，提示要点名那一家、不许再让用户改词（红米那条 TCP 443 被挡的形状）',
+    抛了 && 案.indexOf('OSM 那家（Photon）这一轮没连上') === 0 && 案.indexOf('可试试加上市/县后缀') < 0 && 发.ph > 0 && 发.om > 0,
+    '文案=' + 案 + ' ；请求数 om=' + 发.om + ' / ph=' + 发.ph);
+}
+
+/* 只堵红米那一半不够：把「哪一族没连上」写死成 Photon，上面这条照样绿。换一头再量一次 ——
+ * 主源整轮没答、OSM 那家答了但库里没有这个词。桩的是 2026-11-05 之外的另一种真实形状：
+ * Open-Meteo 也会 5xx 或超时，那时用户看到的必须是「Open-Meteo 那家」，不是「OSM 那家」。 */
+{
+  const 词 = '白桦未查镇';
+  const realFetch = window.fetch;
+  const 发 = { ph: 0, om: 0 };
+  window.fetch = function (url) {
+    const u = String(url);
+    if (u.indexOf('photon.') >= 0) { 发.ph++; return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ features: [] }) }); }
+    if (u.indexOf('geocoding-api') >= 0) { 发.om++; return Promise.reject(new TypeError('Failed to fetch')); }
+    return realFetch.apply(window, arguments);
+  };
+  const geoFresh = await import('/weather-app/js/lib/geo.js?mute=' + Date.now());
+  let 案 = '(没抛错)', 抛了 = false;
+  try { await geoFresh.bestCity(词); }
+  catch (e) { 案 = String((e && e.message) || e); 抛了 = true; }
+  finally { window.fetch = realFetch; }
+  push('没连上的是主源那一族时要点名 Open-Meteo，不许两族共用一句（写死成 Photon 也要能被抓）',
+    抛了 && 案.indexOf('Open-Meteo 那家这一轮没连上') === 0 && 案.indexOf('OSM 那家') < 0 && 案.indexOf('可试试加上市/县后缀') < 0 && 发.om > 0 && 发.ph > 0,
+    '文案=' + 案 + ' ；请求数 om=' + 发.om + ' / ph=' + 发.ph);
+}
+
+/* 上面那句提示写着「过几秒再搜一次」—— 那下一次就必须真的重新问。in-flight 共享的意义是省掉重复请求，
+ * 而「一家没连上 + 另一家没这个词」这一轮拿到的是空结果，把它原样端给下一位，提示就成了空话
+ * （和 11-01 那条「两源都没答不许共享」同一族，那一次只堵了全哑的形态）。 */
+{
+  const 词 = '俄博未查镇';
+  const realFetch = window.fetch;
+  const 发 = { ph: 0 };
+  window.fetch = function (url) {
+    const u = String(url);
+    if (u.indexOf('photon.') >= 0) { 发.ph++; return Promise.reject(new TypeError('Failed to fetch')); }
+    if (u.indexOf('geocoding-api') >= 0) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ results: [] }) });
+    return realFetch.apply(window, arguments);
+  };
+  const geoFresh = await import('/weather-app/js/lib/geo.js?share=' + Date.now());
+  await geoFresh.searchCities(词).catch(() => {});
+  const 第一轮 = 发.ph;
+  await geoFresh.searchCities(词).catch(() => {});
+  window.fetch = realFetch;
+  push('一家没连上而结果为空的那一轮不许被共享：同一个词第二次问要真的重新发 Photon',
+    第一轮 > 0 && 发.ph > 第一轮, 'Photon 发数：第一轮 ' + 第一轮 + ' 发，两轮合计 ' + 发.ph + ' 发（合计没涨就是被共享了）');
+}
+
 /* ---------- 站点映射：坐标 → 到底是哪个站 ----------
  * 拿错站不是「数值差一点」，是拿几百公里外那个省的天气当用户这里的，而且界面上看不出来。
  * 2026-09-27 由墨迹对照抓出：郑州的坐标被一个重名「河南」站（内蒙古）顶掉，码表里它俩同坐标。 */

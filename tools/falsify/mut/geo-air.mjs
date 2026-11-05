@@ -23,7 +23,27 @@ export default [
   { name: 'v97 cnAqi 不接 NO₂（请求回来了也没人吃）', file: F.aq, from: "    ['NO₂', iaqi(cur.nitrogen_dioxide, BP.no2_1h)],", to: "    ['NO₂', null],", expect: '首要污染物是它' },
   { name: 'v97 档位不再从报文里量（写死成一档）', file: F.hr, from: '    if (d > 0 && (s === 0 || d < s)) s = d;', to: '    void d;', expect: '窗口标题写明' },
   { name: 'v97 两源都没答时不再标记（又把锅甩给用户的用词）', file: F.geo, from: '  list.silent = asked > 0 && failed === asked;', to: '  list.silent = false;', expect: '检索源这一轮没有回答' },
-  { name: 'v97 没答的那一轮仍被共享 10 秒（重试拿回同一个空数组）', file: F.geo, from: '  p.then(r => { if (r && r.silent && inflight.get(q) === p) inflight.delete(q); }, () => {});', to: '  void 0;', expect: '并重试一发' },
+  { name: 'v97 没答的那一轮仍被共享 10 秒（重试拿回同一个空数组）', file: F.geo, from: '  p.then(r => { if (r && (r.silent || (r.partial && !r.length)) && inflight.get(q) === p) inflight.delete(q); }, () => {});', to: '  void 0;', expect: '并重试一发' },
+  /* ↓ 2026-11-05 红米 K60 那一轮：Photon 被这台的网络挡在 TCP 443，Open-Meteo 照答 —— silent 不响，
+   *   提示却还是那句让用户改词。下面四处各拆一把尺：不标记 / 两家点反 / 点反之外再写死成 Photon / 空结果仍共享。
+   *   四处落在三条断言上（「不标记」与「两家点反」都要让「要点名那一家」红，写死成 Photon 只有镜像那条会红）。
+   *   别合并成一条 —— 合并了就又变成「一次拆两把」那种不可归因。 */
+  { name: '2026-11-05 红米 一家整轮没连上不再标记（又把锅甩给用户的用词）', file: F.geo,
+    from: '  list.partial = !list.silent && !(signal && signal.aborted) && (主 || 辅);',
+    to: '  list.partial = false;',
+    expect: '提示要点名那一家' },
+  { name: '2026-11-05 红米 mute 把两家点反（说成答了的那一家没连上）', file: F.geo,
+    from: "  list.mute = 主 ? 'open-meteo' : (辅 ? 'photon' : null);",
+    to: "  list.mute = 主 ? 'photon' : (辅 ? 'open-meteo' : null);",
+    expect: '提示要点名那一家' },
+  { name: '2026-11-05 红米 mute 写死成 Photon（主源没连上时也怪 OSM 那家）', file: F.geo,
+    from: "  list.mute = 主 ? 'open-meteo' : (辅 ? 'photon' : null);",
+    to: "  list.mute = 'photon';",
+    expect: '要点名 Open-Meteo' },
+  { name: '2026-11-05 红米 一家没连上的空结果仍被共享 10 秒（提示里「过几秒再搜」成空话）', file: F.geo,
+    from: '  p.then(r => { if (r && (r.silent || (r.partial && !r.length)) && inflight.get(q) === p) inflight.delete(q); }, () => {});',
+    to: '  p.then(r => { if (r && r.silent && inflight.get(q) === p) inflight.delete(q); }, () => {});',
+    expect: '第二次问要真的重新发 Photon' },
   /* ↓ 2026-11-01 华为装机录下来的真形状：撤掉「原词那一发命中」这一把尺，四川那座就又被陕西那座
    *   city(80) 顶掉。别拿等级表开刀 —— 我第一版就是抬了区/县却压不住 city，改错了地方。 */
   { name: '2026-11-01 真机 原词那一发的命中不再加权（补出来的写法反过来盖掉原词）', file: F.geo,

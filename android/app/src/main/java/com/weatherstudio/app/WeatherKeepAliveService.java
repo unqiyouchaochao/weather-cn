@@ -203,9 +203,11 @@ public class WeatherKeepAliveService extends Service {
         String text = buildText(json, r);
         if (text.length() == 0) return;
         String title = notificationTitle(r);
-        /* 内容一个字没变就别重发。满一小时重建是「保新鲜」的上限，不是义务：夜里天气不动的时候，
-         * 重发只是让 SystemUI 白重画一遍、并给这条常驻通知刷一次 postTime。
-         * 门限照样往前推，下一次仍是满一小时才来看（不推的话每 10 分钟那一拍都会重比一次，白干活）。 */
+        /* 内容一个字没变就别重发。满一小时重建是「保新鲜」的上限，不是义务：重发只是让 SystemUI
+         * 白重画一遍、并给这条常驻通知刷一次 postTime。门限照样往前推，下一次仍是满一小时才来看
+         * （不推的话每 10 分钟那一拍都会重比一次，白干活）。
+         * 2026-11-05 红米两轮守候（12:49→14:01→15:01）走的都是「变了→重发」：常驻那一行带着报文的
+         * 发布时刻，兰州这一站每小时都换新时刻，所以这一支咬住的场合是「源整小时没刷新」那种。 */
         if (text.equals(prefs(ctx).getString(KEY_LIVE_TEXT, ""))
           && title.equals(prefs(ctx).getString(KEY_LIVE_TITLE, ""))) {
             prefs(ctx).edit().putLong(KEY_LAST_LIVE, System.currentTimeMillis()).apply();

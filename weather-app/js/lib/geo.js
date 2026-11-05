@@ -103,31 +103,42 @@ function dedupeRank(list) {
 // 数组上挂一个 `silent`：**这一轮两家检索源一个都没答**（全请求失败）时为 true。
 // 2026-10-01 实测同一句「××县」连问 5 次，前两次两源都没给可用结果、后三次正常 —— 公共实例会整轮不答。
 // 那种情况报「未找到，可试试加上市/县后缀」是把上游没答说成用户词写得不对，责任归错了。
-function tag(list, asked, failed) {
+/* 2026-11-05 红米 K60 撞到另一半，当时没人管：这台所在网络把 photon.komoot.io 挡在 **TCP 443**
+ * （机器里 `toybox nc` 建不上、系统 curl 报 Couldn't connect，而 ICMP ping 通、同一发对 Open-Meteo 是 200）。
+ * 那一轮 Open-Meteo 答了、只是它库里没有这个词，于是 `silent` 是 false，屏上仍是那句「可试试加上市/县后缀」——
+ * 把「另一家整轮没连上」说成了「你的词写得不对」。所以这里按**族**记失败，另挂两个字段：
+ *   `partial` 只有一家整轮没答（另一家答了）；`mute` 是哪一家。
+ * 连打时用户自己掐掉的那一轮不做归因（那种失败是 AbortError，说不上谁的库没有这个词）。 */
+function tag(list, asked, failed, om, ph, signal) {
   list.silent = asked > 0 && failed === asked;
+  const 主 = om.asked > 0 && om.failed === om.asked;
+  const 辅 = ph.asked > 0 && ph.failed === ph.asked;
+  list.partial = !list.silent && !(signal && signal.aborted) && (主 || 辅);
+  list.mute = 主 ? 'open-meteo' : (辅 ? 'photon' : null);
   return list;
 }
 async function runSearch(q, signal) {
   const vs = geoVariants(q);
   let asked = 0, failed = 0;
-  const guard = p => { asked++; return p.catch(() => { failed++; return []; }); };
+  const 族 = { om: { asked: 0, failed: 0 }, ph: { asked: 0, failed: 0 } };
+  const guard = (p, k) => { asked++; 族[k].asked++; return p.catch(() => { failed++; 族[k].failed++; return []; }); };
   // Photon 对裸词常开一发（非仅兜底）：它收录了若干 Open-Meteo 里缺失或等级更低的区县。
   // 实测「凤凰」只有 OSM 给出湖南凤凰县，其 city 级条目叠上剥后缀的同名加分（80+40）
   // 才能正确压过山西那个同名镇（PPLA3 70+40）；纯兜底时它会因主源已有命中而被跳过。
   const [omGroups, phOwn] = await Promise.all([
-    Promise.all(vs.map(v => guard(omSearch(v, signal, q)))),
-    guard(photonSearch(q, signal, q))
+    Promise.all(vs.map(v => guard(omSearch(v, signal, q), 'om'))),
+    guard(photonSearch(q, signal, q), 'ph')
   ]);
   const merged = dedupeRank(omGroups.flat().concat(phOwn));
   // 是否再全变体问一遍 OSM，只看「原词那一发」在主源的结果（vs[0] 恒等于 q）：
   // 派生变体捞到高等级同名点时，不该掩盖原词其实一无所获 —— 实测「凤凰县」在 Open-Meteo 是 0 条，
   // 但合并的「凤凰」变体返回山西 PPLA3 顶过阈值，曾导致湖南凤凰县彻底查不到。
   const own = omGroups[0] || [];
-  if (own.length && own[0].rank >= CITY_LEVEL_MIN) return tag(merged, asked, failed);
+  if (own.length && own[0].rank >= CITY_LEVEL_MIN) return tag(merged, asked, failed, 族.om, 族.ph, signal);
   const back = await Promise.all(
-    vs.filter(v => v !== q).map(v => guard(photonSearch(v, signal, q)))
+    vs.filter(v => v !== q).map(v => guard(photonSearch(v, signal, q), 'ph'))
   );
-  return tag(dedupeRank(merged.concat(back.flat())), asked, failed);
+  return tag(dedupeRank(merged.concat(back.flat())), asked, failed, 族.om, 族.ph, signal);
 }
 
 /* 同一个词只发一发检索：联想下拉和随后那次回车查的是同一个 q，不共享就得把 5~8 个跨域请求
@@ -145,8 +156,10 @@ export function searchCities(q, signal) {
   inflight.set(q, p);
   /* 「两源都没答」的那一轮不该被共享出去：共享的意义是省掉重复请求，而空手而归的这一轮
    * 恰恰需要下一位（bestCity 的那发重试、或者用户再按一次回车）真的重新问一遍。
-   * 留着它，重试就会原样拿回同一个空数组 —— 白等 600ms，报错还是那句。 */
-  p.then(r => { if (r && r.silent && inflight.get(q) === p) inflight.delete(q); }, () => {});
+   * 留着它，重试就会原样拿回同一个空数组 —— 白等 600ms，报错还是那句。
+   * 「只有一家答了、而答了的那家没有这个词」是同一族的情形（2026-11-05 红米）：那一轮提示里写着
+   * 「过几秒再搜」，那下一次就必须真的重新问一遍，否则这句提示是空的。 */
+  p.then(r => { if (r && (r.silent || (r.partial && !r.length)) && inflight.get(q) === p) inflight.delete(q); }, () => {});
   setTimeout(() => { if (inflight.get(q) === p) inflight.delete(q); }, INFLIGHT_MS);
   return p;
 }
@@ -199,7 +212,10 @@ export async function bestCity(name) {
   if (!list.length) {
     throw new Error(list.silent
       ? '检索源这一轮没有回答（Photon 与 Open-Meteo 两家都没回），过几秒再搜一次。「' + name + '」这个词未必写得不对。'
-      : '未找到「' + name + '」，可试试加上市/县后缀（如「' + name + '市」），或直接输入 lat,lon 坐标');
+      : list.partial
+        ? (list.mute === 'photon' ? 'OSM 那家（Photon）' : 'Open-Meteo 那家') +
+          '这一轮没连上，答了的那一家库里没有「' + name + '」。有些地名只收录在没连上的那一家里 —— 过几秒再搜一次，或直接输入 lat,lon 坐标。'
+        : '未找到「' + name + '」，可试试加上市/县后缀（如「' + name + '市」），或直接输入 lat,lon 坐标');
   }
   const g = list[0];
   const out = { lat: g.lat, lon: g.lon, name: g.name, country: g.country, admin: g.admin };

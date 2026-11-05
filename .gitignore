@@ -22,6 +22,9 @@ smoke*.js
 # 验收/调试脚本跑起来时自建的临时目录（如 .tmp-dv/），用完即删，
 # 但存在的那段时间会被 `git add .` 扫到，所以按名字模式挡掉
 .tmp-*/
+# tests/gfx-rank-scroll.mjs 落的 dumpsys gfxinfo 原始现场（同上一类：跑一次就有一个，
+# 脚本自己说「仓库里没有也不报错」，那就别让它被 `git add .` 顺手吞进来）
+_probe/
 
 # 抓下来的省界 GeoJSON 等外部数据缓存，tools/*.py 会自己重建
 tools/datav_cache/
