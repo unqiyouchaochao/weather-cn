@@ -100,7 +100,7 @@ npm run apk      # gen-styles → gen-shell → cap sync → gradlew assembleDeb
   华为实测要十几二十秒。
 - 降水量、风力等字段源没给就整行不画，也不会用别的字段估算 —— 宁缺勿错是这仓库的默认取向。
 - 只出 debug 签名包（`~/.android/debug.keystore` 不进仓库），这一版的定位是自用与侧载。
-- 版本四件现在对齐在 `CACHE weather-studio-v4` / `versionCode 4` / `versionName 1.2` / `package.json 1.2`（v4 = 2026-11-05 把检索失败改成按源点名那一改）。红米 K60 已装上这颗 4（真机五条验收全过，按源点名的提示在装好的字节上量到了）；华为那台还没装。公开线上的 tag 与 Release 仍是 `v1.1`（那颗是 v3 的字节）—— 发新版是另一件事，说一句才做。`CACHE` 号是从 v1 重开的新数段，与早年 v1xx 那一段不连续，别拿它当版本号比大小。
+- 版本四件对齐在 `CACHE weather-studio-v4` / `versionCode 4` / `versionName 1.2` / `package.json 1.2`（v4 = 2026-11-05 把检索失败改成按源点名那一改），公开线的 tag 与 Release 就是 `v1.2`，与红米 K60 上装着的那一颗同一批字节；华为那台还没装。`CACHE` 号是从 v1 重开的新数段，与早年 v1xx 那一段不连续，别拿它当版本号比大小。
 
 上面只是最常被问到的几条。每条限制的实测数字与被推翻过的版本记在改它的那笔提交信息里，文档不另抄一份 —— 同一件事维护在两处迟早会漂。
 
